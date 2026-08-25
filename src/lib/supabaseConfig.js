@@ -9,5 +9,5 @@
 // Enquanto estiverem vazios, o app funciona em modo LOCAL (sem login, dados só
 // no navegador). Ao preencher, ele passa a exigir login e sincronizar na nuvem.
 
-export const SUPABASE_URL = ''
-export const SUPABASE_ANON_KEY = ''
+export const SUPABASE_URL = 'https://wthjkwovitawcfmmnyzk.supabase.co'
+export const SUPABASE_ANON_KEY = 'sb_publishable_M3TUeafKVEGfC0B-Pb9L6Q_u4DTMPe5'
