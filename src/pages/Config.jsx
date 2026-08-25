@@ -16,15 +16,21 @@ import {
   Loader2,
   ShieldAlert,
   CheckCircle2,
+  LogOut,
+  Cloud,
 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useConfig } from '../hooks/useConfig'
+import { useStore } from '../context/StoreContext'
+import { useAuth } from '../context/AuthContext'
 import { validarTelefone, formatarTelefone } from '../utils/whatsapp'
 import { MODELO_PADRAO, testarConexaoIA } from '../utils/aiAgent'
 
 export default function Config() {
   const { config, atualizarConfig, adicionarSegmento, removerSegmento } = useConfig()
+  const { resetarTudo, nuvem } = useStore()
+  const { usuario, sair } = useAuth()
 
   const [nomeEmpresa, setNomeEmpresa] = useState(config.nomeEmpresa)
   const [telefone, setTelefone] = useState(config.telefone)
@@ -78,11 +84,8 @@ export default function Config() {
   }
 
   const limparTudo = () => {
-    localStorage.removeItem('prospecta:leads')
-    localStorage.removeItem('prospecta:templates')
-    localStorage.removeItem('prospecta:config')
-    toast.success('Dados apagados. Recarregando...')
-    setTimeout(() => window.location.reload(), 900)
+    resetarTudo()
+    toast.success('Dados apagados.')
   }
 
   return (
@@ -91,6 +94,29 @@ export default function Config() {
         titulo="Configurações"
         subtitulo="Dados do seu negócio e preferências de disparo."
       />
+
+      {nuvem && (
+        <div className="card mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-whatsapp/12 text-whatsapp">
+              <Cloud size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-100">Conta conectada</p>
+              <p className="text-xs text-slate-500">{usuario?.email} · dados sincronizados na nuvem</p>
+            </div>
+          </div>
+          <button
+            className="btn-ghost shrink-0"
+            onClick={async () => {
+              await sair()
+              toast.success('Você saiu da conta.')
+            }}
+          >
+            <LogOut size={16} /> Sair
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Dados do negócio */}

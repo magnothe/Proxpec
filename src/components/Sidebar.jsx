@@ -1,5 +1,19 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, MessageSquareText, Send, Settings, Radar } from 'lucide-react'
+import toast from 'react-hot-toast'
+import {
+  LayoutDashboard,
+  Users,
+  MessageSquareText,
+  Send,
+  Settings,
+  Radar,
+  LogOut,
+  Cloud,
+  CloudOff,
+  RefreshCw,
+} from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { useStore } from '../context/StoreContext'
 
 const NAV = [
   { to: '/', label: 'Dashboard', curto: 'Início', icone: LayoutDashboard, exato: true },
@@ -20,6 +34,51 @@ function Logo() {
         <p className="font-display text-base font-bold text-slate-100">Prospecta</p>
         <p className="text-[11px] text-slate-500">CRM de prospecção</p>
       </div>
+    </div>
+  )
+}
+
+function RodapeConta() {
+  const { nuvem, sincronizando, erroSync } = useStore()
+  const { usuario, sair } = useAuth()
+
+  if (!nuvem) {
+    return (
+      <div className="border-t border-surface-700 p-4 text-[11px] text-slate-500">
+        Dados salvos localmente neste navegador.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2 border-t border-surface-700 p-3">
+      <div className="flex items-center gap-2 px-1 text-[11px]">
+        {erroSync ? (
+          <span className="flex items-center gap-1 text-amber-400">
+            <CloudOff size={13} /> sem conexão
+          </span>
+        ) : sincronizando ? (
+          <span className="flex items-center gap-1 text-slate-400">
+            <RefreshCw size={13} className="animate-spin" /> salvando...
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 text-whatsapp">
+            <Cloud size={13} /> tudo salvo na nuvem
+          </span>
+        )}
+      </div>
+      <div className="truncate px-1 text-[11px] text-slate-500" title={usuario?.email}>
+        {usuario?.email}
+      </div>
+      <button
+        onClick={async () => {
+          await sair()
+          toast.success('Você saiu da conta.')
+        }}
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-surface-800 hover:text-slate-100"
+      >
+        <LogOut size={17} /> Sair
+      </button>
     </div>
   )
 }
@@ -51,9 +110,7 @@ export default function Sidebar() {
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-surface-700 p-4 text-[11px] text-slate-500">
-          Dados salvos localmente neste navegador.
-        </div>
+        <RodapeConta />
       </aside>
 
       {/* Bottom nav mobile */}
