@@ -3,7 +3,15 @@
 import { apenasDigitos } from './whatsapp'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
-const OVERPASS = 'https://overpass-api.de/api/interpreter'
+
+// Vários servidores Overpass (todos gratuitos, com CORS). Se um falhar ou
+// estiver sobrecarregado, tentamos o próximo automaticamente.
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+]
 
 // Tipos de comércio mapeados para tags do OpenStreetMap.
 export const TIPOS_COMERCIO = [
@@ -49,7 +57,9 @@ export async function geocodarCidade(cidade) {
   if (!resp.ok) throw new Error('Falha ao localizar a cidade.')
   const dados = await resp.json()
   if (!dados || dados.length === 0) {
-    throw new Error(`Cidade "${cidade}" não encontrada.`)
+    throw new Error(
+      `Não encontrei a cidade "${cidade}". Confira a grafia — se ajudar, escreva com o estado (ex: "Campinas SP").`
+    )
   }
   const c = dados[0]
   const [south, north, west, east] = c.boundingbox.map(Number)
@@ -105,6 +115,45 @@ function montarEndereco(tags) {
  * @param {{ tipo: string, cidade: string }} params
  * @returns {Promise<{ cidade: object, resultados: Array }>}
  */
+/**
+ * Consulta o Overpass tentando vários servidores em sequência.
+ * Se um estiver fora do ar ou sobrecarregado, passa para o próximo.
+ */
+async function consultarOverpass(query) {
+  let ultimoErro = null
+
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: query,
+      })
+
+      // servidor ocupado/instável -> tenta o próximo
+      if ([429, 502, 503, 504].includes(resp.status)) {
+        ultimoErro = new Error('sobrecarregado')
+        continue
+      }
+      if (!resp.ok) {
+        ultimoErro = new Error(`HTTP ${resp.status}`)
+        continue
+      }
+
+      const dados = await resp.json()
+      return dados
+    } catch (e) {
+      // erro de rede / CORS -> tenta o próximo
+      ultimoErro = e
+      continue
+    }
+  }
+
+  throw new Error(
+    'Os servidores de busca estão ocupados no momento. Aguarde alguns segundos e tente de novo.'
+  )
+}
+
 export async function buscarComercios({ tipo, cidade }) {
   const cat = tipoPorValor(tipo)
   if (!cat) throw new Error('Tipo de comércio inválido.')
@@ -112,17 +161,7 @@ export async function buscarComercios({ tipo, cidade }) {
   const local = await geocodarCidade(cidade)
   const query = construirQuery(local.bbox, cat.tags)
 
-  const resp = await fetch(OVERPASS, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-    body: query,
-  })
-  if (resp.status === 429 || resp.status === 504) {
-    throw new Error('O servidor de busca está sobrecarregado. Tente novamente em alguns segundos.')
-  }
-  if (!resp.ok) throw new Error('Falha na busca de comércios.')
-
-  const dados = await resp.json()
+  const dados = await consultarOverpass(query)
   const vistos = new Set()
   const resultados = []
 
