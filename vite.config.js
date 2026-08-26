@@ -6,5 +6,16 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    proxy: {
+      // Em produção /api/overpass é a função serverless (api/overpass.js).
+      // No `npm run dev` não há serverless, então o próprio Vite faz o papel
+      // de proxy — o pedido sai do servidor de dev, não do navegador, então
+      // também não esbarra em CORS.
+      '/api/overpass': {
+        target: 'https://overpass-api.de',
+        changeOrigin: true,
+        rewrite: () => '/api/interpreter',
+      },
+    },
   },
 })

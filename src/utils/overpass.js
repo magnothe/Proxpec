@@ -1,16 +1,16 @@
 // Busca real de comércios via OpenStreetMap (Nominatim + Overpass API).
-// Gratuito, sem chave, funciona direto do navegador (CORS liberado).
+// Gratuito e sem chave. O Nominatim (geocodificação) aceita chamada direta do
+// navegador; o Overpass não — ele vai pelo nosso backend, veja abaixo.
 import { apenasDigitos } from './whatsapp'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
 
-// Vários servidores Overpass (todos gratuitos, com CORS). Se um falhar ou
-// estiver sobrecarregado, tentamos o próximo automaticamente.
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-]
+// A consulta ao Overpass passa pelo NOSSO backend (/api/overpass), na mesma
+// origem do site. Chamar o Overpass direto do navegador quebra por CORS: os
+// servidores dele só mandam o header `Access-Control-Allow-Origin` quando dá
+// certo — nas respostas de erro/sobrecarga o header some e o navegador bloqueia
+// antes do nosso código conseguir tentar outro servidor.
+const OVERPASS_PROXY = '/api/overpass'
 
 // Tipos de comércio mapeados para tags do OpenStreetMap.
 export const TIPOS_COMERCIO = [
@@ -110,49 +110,41 @@ function montarEndereco(tags) {
 }
 
 /**
+ * Consulta o Overpass através do nosso backend (mesma origem, sem CORS).
+ * O backend é quem tenta os vários servidores do OpenStreetMap e descarta as
+ * respostas inválidas — aqui só precisamos lidar com o resultado final.
+ */
+async function consultarOverpass(query) {
+  let resp
+  try {
+    resp = await fetch(OVERPASS_PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: query,
+    })
+  } catch (e) {
+    console.error('Falha de rede ao chamar o proxy do Overpass:', e)
+    throw new Error('Sem conexão com o servidor de busca. Verifique sua internet.')
+  }
+
+  if (!resp.ok) {
+    // O backend manda { erro, detalhe } quando todos os servidores falharam.
+    const corpo = await resp.json().catch(() => null)
+    if (corpo && corpo.detalhe) console.error('Detalhe do backend:', corpo.detalhe)
+    throw new Error(
+      (corpo && corpo.erro) ||
+        'Os servidores de busca estão instáveis agora. Tente de novo em alguns segundos.'
+    )
+  }
+
+  return resp.json()
+}
+
+/**
  * Busca comércios reais por tipo e cidade.
  * @param {{ tipo: string, cidade: string }} params
  * @returns {Promise<{ cidade: object, resultados: Array }>}
  */
-/**
- * Consulta o Overpass tentando vários servidores em sequência.
- * Se um estiver fora do ar ou sobrecarregado, passa para o próximo.
- */
-async function consultarOverpass(query) {
-  let ultimoErro = null
-
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    try {
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-        body: query,
-      })
-
-      // servidor ocupado/instável -> tenta o próximo
-      if ([429, 502, 503, 504].includes(resp.status)) {
-        ultimoErro = new Error('sobrecarregado')
-        continue
-      }
-      if (!resp.ok) {
-        ultimoErro = new Error(`HTTP ${resp.status}`)
-        continue
-      }
-
-      const dados = await resp.json()
-      return dados
-    } catch (e) {
-      // erro de rede / CORS -> tenta o próximo
-      ultimoErro = e
-      continue
-    }
-  }
-
-  throw new Error(
-    'Os servidores de busca estão ocupados no momento. Aguarde alguns segundos e tente de novo.'
-  )
-}
-
 export async function buscarComercios({ tipo, cidade }) {
   const cat = tipoPorValor(tipo)
   if (!cat) throw new Error('Tipo de comércio inválido.')
