@@ -96,7 +96,7 @@ export default function Buscar() {
     setBuscou(true)
     setSelecionados(new Set())
     try {
-      const { cidade: local, resultados: res } = await buscarComercios({
+      const { cidade: local, resultados: res, truncado } = await buscarComercios({
         tipo: tipoBusca,
         cidade: cidadeBusca,
       })
@@ -107,6 +107,12 @@ export default function Buscar() {
       } else {
         const semSite = res.filter((r) => !r.temSite).length
         toast.success(`${res.length} encontrados · ${semSite} sem site (oportunidades!)`)
+        if (truncado) {
+          toast('A cidade tem mais do que coube nesta busca. Busque por bairro para ver o resto.', {
+            icon: '✂️',
+            duration: 6000,
+          })
+        }
       }
     } catch (e) {
       console.error(e)

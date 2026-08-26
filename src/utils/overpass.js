@@ -12,6 +12,15 @@ const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
 // antes do nosso código conseguir tentar outro servidor.
 const OVERPASS_PROXY = '/api/overpass'
 
+// Teto de resultados por busca. O Overpass corta em silêncio ao atingir esse
+// número, então avisamos na tela quando a lista veio truncada.
+const LIMITE_RESULTADOS = 500
+
+// Dois registros com o mesmo nome a menos disso são o mesmo estabelecimento
+// (o OSM costuma ter o mesmo lugar como ponto E como polígono do prédio).
+// Acima disso são unidades diferentes de uma rede — e cada uma é um lead.
+const RAIO_MESMO_LOCAL_M = 150
+
 // Tipos de comércio mapeados para tags do OpenStreetMap.
 export const TIPOS_COMERCIO = [
   { valor: 'restaurante', label: 'Restaurantes', tags: [['amenity', 'restaurant']], sinonimos: ['restaurante', 'restaurantes', 'comida', 'lanchonete de comida'] },
@@ -83,7 +92,18 @@ function construirQuery(bbox, tags) {
   // que o TIMEOUT_POR_TENTATIVA do backend (api/overpass.js), senão nós
   // abortamos a conexão antes de o servidor conseguir responder — e aí perdemos
   // a mensagem de erro dele, que diria o motivo real.
-  return `[out:json][timeout:18];\n(\n${linhas}\n);\nout center 150;`
+  return `[out:json][timeout:18];\n(\n${linhas}\n);\nout center ${LIMITE_RESULTADOS};`
+}
+
+/**
+ * Distância aproximada em metros entre dois pontos (boa o bastante para
+ * decidir se dois registros são o mesmo estabelecimento).
+ */
+function distanciaMetros(aLat, aLon, bLat, bLon) {
+  const mPorGrau = 111320
+  const dLat = (aLat - bLat) * mPorGrau
+  const dLon = (aLon - bLon) * mPorGrau * Math.cos((aLat * Math.PI) / 180)
+  return Math.sqrt(dLat * dLat + dLon * dLon)
 }
 
 function pegarTelefone(tags) {
@@ -165,21 +185,32 @@ export async function buscarComercios({ tipo, cidade }) {
   const query = construirQuery(local.bbox, cat.tags)
 
   const dados = await consultarOverpass(query)
-  const vistos = new Set()
+  const brutos = dados.elements || []
   const resultados = []
 
-  for (const el of dados.elements || []) {
+  for (const el of brutos) {
     const tags = el.tags || {}
     const nome = tags.name
     if (!nome) continue // ignora sem nome
-    const chave = `${nome.toLowerCase()}|${tags['addr:street'] || ''}`
-    if (vistos.has(chave)) continue
-    vistos.add(chave)
 
     const telefoneRaw = pegarTelefone(tags)
     const site = pegarSite(tags)
     const lat = el.lat ?? el.center?.lat
     const lon = el.lon ?? el.center?.lon
+
+    // Deduplicação por nome + PROXIMIDADE.
+    //
+    // Não use o endereço como chave: unidades diferentes de uma rede muitas
+    // vezes não têm `addr:street` no OSM, e aí duas lojas distintas colidem e
+    // uma some. Em Fortaleza isso apagava uma Smart Fit a 9,7 km de outra.
+    const jaTem = resultados.some((r) => {
+      if (r.nome.toLowerCase() !== nome.toLowerCase()) return false
+      // Sem coordenada em algum dos dois não dá para comparar: mantemos ambos,
+      // porque exibir repetido é menos grave do que sumir com um lead.
+      if (lat == null || lon == null || r.lat == null || r.lon == null) return false
+      return distanciaMetros(lat, lon, r.lat, r.lon) < RAIO_MESMO_LOCAL_M
+    })
+    if (jaTem) continue
 
     resultados.push({
       osmId: `${el.type}/${el.id}`,
@@ -204,5 +235,9 @@ export async function buscarComercios({ tipo, cidade }) {
     return a.nome.localeCompare(b.nome)
   })
 
-  return { cidade: local, resultados }
+  // O Overpass corta a lista em silêncio ao bater o teto; sem este aviso o
+  // usuário acha que viu a cidade inteira quando viu só uma parte.
+  const truncado = brutos.length >= LIMITE_RESULTADOS
+
+  return { cidade: local, resultados, truncado }
 }
