@@ -6,14 +6,19 @@
 // a resposta sai sem o header e o navegador bloqueia antes do nosso código ver
 // qualquer coisa. Servidor->servidor não tem CORS, então aqui funciona sempre.
 
-// Servidores independentes de verdade. Cuidado ao mexer: overpass.kumi.systems
-// e overpass.private.coffee são a MESMA máquina (um é alias do outro), então
-// listar os dois não dá redundância nenhuma.
+// SÓ servidores com cobertura MUNDIAL podem entrar aqui.
+//
+// Instâncias regionais (overpass.osm.ch = só Suíça, overpass.osm.jp = só Japão)
+// são perigosas: para uma cidade brasileira elas respondem HTTP 200 com zero
+// resultados. Isso não parece erro — vira um "Nada encontrado" mentiroso na
+// tela, que foi exatamente o sintoma que nos trouxe até aqui.
+//
+// Cuidado também com aliases: overpass.kumi.systems e overpass.private.coffee
+// são a MESMA máquina (mesmo IP), então listar os dois não dá redundância.
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
+  'https://overpass.openstreetmap.fr/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.osm.ch/api/interpreter',
-  'https://overpass.osm.jp/api/interpreter',
 ]
 
 const RODADAS = 2

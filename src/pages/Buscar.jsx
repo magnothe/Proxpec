@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
@@ -24,6 +24,7 @@ import { interpretarBusca, iaDisponivel, gerarMensagemIA } from '../utils/aiAgen
 import { useLeads } from '../hooks/useLeads'
 import { useConfig } from '../hooks/useConfig'
 import { useTemplates } from '../hooks/useTemplates'
+import { useSessionStorage } from '../hooks/useSessionStorage'
 import {
   gerarLinkWhatsApp,
   formatarTelefone,
@@ -32,22 +33,40 @@ import {
   TEMPLATE_PRIMEIRO_CONTATO,
 } from '../utils/whatsapp'
 
+// Prefixo das chaves de sessao desta tela.
+const CHAVE = 'prospecta:buscar'
+
 export default function Buscar() {
   const { leads, importarLeads, marcarContatado } = useLeads()
   const { config } = useConfig()
   const { templates } = useTemplates()
   const temIA = iaDisponivel(config)
 
-  const [tipo, setTipo] = useState('restaurante')
-  const [cidade, setCidade] = useState('')
-  const [somenteSemSite, setSomenteSemSite] = useState(false)
+  // Estado da busca: fica no sessionStorage para sobreviver à troca de página
+  // (o React Router desmonta esta tela ao navegar, zerando qualquer useState).
+  const [tipo, setTipo] = useSessionStorage(`${CHAVE}:tipo`, 'restaurante')
+  const [cidade, setCidade] = useSessionStorage(`${CHAVE}:cidade`, '')
+  const [somenteSemSite, setSomenteSemSite] = useSessionStorage(`${CHAVE}:semSite`, false)
+  const [textoIA, setTextoIA] = useSessionStorage(`${CHAVE}:textoIA`, '')
+  const [resultados, setResultados] = useSessionStorage(`${CHAVE}:resultados`, [])
+  const [buscou, setBuscou] = useSessionStorage(`${CHAVE}:buscou`, false)
+  const [infoCidade, setInfoCidade] = useSessionStorage(`${CHAVE}:infoCidade`, null)
+
+  // Set não sobrevive ao JSON, então guardamos como lista e convertemos aqui.
+  // O `setSelecionados` abaixo aceita Set ou função, igual ao useState de antes.
+  const [selecionadosLista, setSelecionadosLista] = useSessionStorage(`${CHAVE}:selecionados`, [])
+  const selecionados = useMemo(() => new Set(selecionadosLista), [selecionadosLista])
+  const setSelecionados = useCallback(
+    (novo) =>
+      setSelecionadosLista((atual) =>
+        Array.from(typeof novo === 'function' ? novo(new Set(atual)) : novo)
+      ),
+    [setSelecionadosLista]
+  )
+
+  // Estado puramente visual do momento: não faz sentido persistir.
   const [buscando, setBuscando] = useState(false)
   const [interpretando, setInterpretando] = useState(false)
-  const [textoIA, setTextoIA] = useState('')
-  const [resultados, setResultados] = useState([])
-  const [buscou, setBuscou] = useState(false)
-  const [selecionados, setSelecionados] = useState(() => new Set())
-  const [infoCidade, setInfoCidade] = useState(null)
   const [gerandoMsg, setGerandoMsg] = useState(null)
 
   // telefones já cadastrados, para marcar duplicados

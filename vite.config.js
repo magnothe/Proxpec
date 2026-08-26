@@ -12,7 +12,9 @@ export default defineConfig({
       // de proxy — o pedido sai do servidor de dev, não do navegador, então
       // também não esbarra em CORS.
       '/api/overpass': {
-        target: 'https://overpass-api.de',
+        // Não use overpass-api.de aqui: muitas redes domésticas não conseguem
+        // alcançá-lo (a conexão fica pendurada até estourar o timeout).
+        target: 'https://overpass.openstreetmap.fr',
         changeOrigin: true,
         rewrite: () => '/api/interpreter',
       },
