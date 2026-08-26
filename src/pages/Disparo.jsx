@@ -21,7 +21,7 @@ import { STATUS_LISTA } from '../data/defaults'
 import { gerarLinkWhatsApp, personalizarMensagem, formatarTelefone } from '../utils/whatsapp'
 
 export default function Disparo() {
-  const { leads, marcarContatado } = useLeads()
+  const { leads, marcarContatado, pode } = useLeads()
   const { templates } = useTemplates()
   const { config } = useConfig()
 
@@ -85,6 +85,9 @@ export default function Disparo() {
   }
 
   const abrirTodos = async () => {
+    if (!pode('disparoEmMassa')) {
+      return toast.error('O disparo em massa é do plano Premium. No grátis, envie um a um.')
+    }
     if (!template) return toast.error('Escolha um template.')
     if (listaSelecionada.length === 0) return toast.error('Selecione ao menos um lead.')
 

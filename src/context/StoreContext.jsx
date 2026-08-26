@@ -4,6 +4,9 @@ import { useAuth } from './AuthContext'
 import { uuid, agora } from '../utils/format'
 import { apenasDigitos } from '../utils/whatsapp'
 import { CONFIG_PADRAO, criarTemplatesPadrao, criarLeadsExemplo } from '../data/defaults'
+import { limparAntigos } from '../utils/retencao'
+import { usePlano } from '../hooks/usePlano'
+import { vagasRestantes } from '../utils/planos'
 
 const StoreContext = createContext(null)
 
@@ -55,9 +58,12 @@ export function StoreProvider({ children }) {
   const nuvem = supabaseConfigurado && Boolean(usuario)
   const userId = usuario?.id || null
 
+  const { plano, ehPremium, pode, maxLeads } = usePlano()
+
   const [estado, setEstado] = useState(() => (nuvem ? null : estadoLocalInicial()))
   const [carregado, setCarregado] = useState(!nuvem)
   const [sincronizando, setSincronizando] = useState(false)
+  const [limpezaRecente, setLimpezaRecente] = useState(0)
   const [erroSync, setErroSync] = useState(false)
   const timerRef = useRef(null)
 
@@ -82,11 +88,21 @@ export function StoreProvider({ children }) {
 
         if (data && data.dados && Object.keys(data.dados).length) {
           const d = data.dados
-          setEstado({
+          const daNuvem = {
             leads: d.leads || [],
             templates: d.templates || criarTemplatesPadrao(),
             config: { ...CONFIG_PADRAO, ...(d.config || {}) },
-          })
+            // telefones de leads já apagados pela retenção, para não reabordar
+            jaAbordados: d.jaAbordados || [],
+          }
+          // Limpa os antigos assim que entra. O `estado` resultante é o mesmo
+          // objeto quando nada expira, então isso não gera escrita à toa.
+          const { estado: limpo, removidos } = limparAntigos(daNuvem)
+          if (removidos > 0) {
+            console.info(`Retenção: ${removidos} lead(s) antigo(s) removido(s).`)
+            setLimpezaRecente(removidos)
+          }
+          setEstado(limpo)
         } else {
           // primeiro acesso: migra dados locais se existirem, senão padrão
           const inicial = estadoParaMigrar() || estadoPadraoNuvem()
@@ -158,6 +174,7 @@ export function StoreProvider({ children }) {
 
   // ---- Operações de LEADS ----
   const adicionarLead = (dados) => {
+    if (vagasRestantes(plano, (estado?.leads || []).length) < 1) return null
     const t = agora()
     const novo = {
       id: uuid(),
@@ -237,7 +254,13 @@ export function StoreProvider({ children }) {
 
   const importarLeads = (lista) => {
     const t = agora()
-    const novos = lista.map((dados) => ({
+    // Corta no limite do plano. `vagas` é Infinity no premium, então slice()
+    // não mexe em nada lá.
+    const vagas = vagasRestantes(plano, (estado?.leads || []).length)
+    const cabem = vagas === Infinity ? lista : lista.slice(0, vagas)
+    const bloqueados = lista.length - cabem.length
+
+    const novos = cabem.map((dados) => ({
       id: uuid(),
       nome: (dados.nome || '').trim(),
       empresa: (dados.empresa || '').trim(),
@@ -249,8 +272,8 @@ export function StoreProvider({ children }) {
       atualizadoEm: t,
       historico: [{ data: t, acao: 'Importado' }],
     }))
-    setLeads((l) => [...novos, ...l])
-    return novos.length
+    if (novos.length) setLeads((l) => [...novos, ...l])
+    return { adicionados: novos.length, bloqueados }
   }
 
   // ---- Operações de TEMPLATES ----
@@ -293,6 +316,15 @@ export function StoreProvider({ children }) {
     leads: estado?.leads || [],
     templates: estado?.templates || [],
     config: estado?.config || CONFIG_PADRAO,
+    // telefones de leads já apagados pela retenção
+    jaAbordados: estado?.jaAbordados || [],
+    // plano e limites
+    plano,
+    ehPremium,
+    pode,
+    maxLeads,
+    vagas: vagasRestantes(plano, (estado?.leads || []).length),
+    limpezaRecente,
     adicionarLead,
     atualizarLead,
     excluirLead,

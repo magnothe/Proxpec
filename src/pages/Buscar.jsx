@@ -37,10 +37,10 @@ import {
 const CHAVE = 'prospecta:buscar'
 
 export default function Buscar() {
-  const { leads, importarLeads, marcarContatado } = useLeads()
+  const { leads, importarLeads, marcarContatado, jaAbordados, maxLeads, pode } = useLeads()
   const { config } = useConfig()
   const { templates } = useTemplates()
-  const temIA = iaDisponivel(config)
+  const temIA = iaDisponivel(config, pode('ia'))
 
   // Estado da busca: fica no sessionStorage para sobreviver à troca de página
   // (o React Router desmonta esta tela ao navegar, zerando qualquer useState).
@@ -83,8 +83,13 @@ export default function Buscar() {
     [leads]
   )
 
+  // Inclui os telefones de leads que a retencao ja apagou: o cliente falou
+  // com essa pessoa um dia, entao ela nao deve reaparecer como novidade.
+  const abordadosAntes = useMemo(() => new Set(jaAbordados || []), [jaAbordados])
+
   const jaCadastrado = (r) =>
-    (r.telefone && telefonesExistentes.has(r.telefone)) || nomesExistentes.has(r.nome.toLowerCase())
+    (r.telefone && (telefonesExistentes.has(r.telefone) || abordadosAntes.has(r.telefone))) ||
+    nomesExistentes.has(r.nome.toLowerCase())
 
   const visiveis = useMemo(() => {
     let lista = resultados
@@ -93,7 +98,7 @@ export default function Buscar() {
     if (esconderJaLead) lista = lista.filter((r) => !jaCadastrado(r))
     return lista
     // jaCadastrado deriva desses dois conjuntos, por isso eles entram aqui.
-  }, [resultados, soComCelular, somenteSemSite, esconderJaLead, telefonesExistentes, nomesExistentes])
+  }, [resultados, soComCelular, somenteSemSite, esconderJaLead, telefonesExistentes, nomesExistentes, abordadosAntes])
 
   // Quanto cada filtro está escondendo — sem isso o usuário vê a lista encolher
   // de 108 para 13 e acha que a busca falhou.
@@ -148,7 +153,7 @@ export default function Buscar() {
     }
     setInterpretando(true)
     try {
-      const r = await interpretarBusca(textoIA, config)
+      const r = await interpretarBusca(textoIA, config, pode('ia'))
       if (r._erroIA) toast(`IA indisponível, usei interpretação simples. (${r._erroIA})`, { icon: '⚠️' })
       const novoTipo = r.tipo || tipo
       const novaCidade = r.cidade || cidade
@@ -189,7 +194,7 @@ export default function Buscar() {
       toast.error('Selecione ao menos um comércio novo.')
       return
     }
-    const qtd = importarLeads(
+    const { adicionados, bloqueados } = importarLeads(
       escolhidos.map((r) => ({
         nome: r.nome,
         empresa: r.nome,
@@ -200,12 +205,17 @@ export default function Buscar() {
           .join('\n'),
       }))
     )
-    toast.success(`${qtd} comércio(s) adicionado(s) aos seus leads!`)
+    if (adicionados) toast.success(`${adicionados} comércio(s) adicionado(s) aos seus leads!`)
+    if (bloqueados) {
+      toast.error(`${bloqueados} não couberam: seu plano permite ${maxLeads} leads.`, {
+        duration: 6000,
+      })
+    }
     setSelecionados(new Set())
   }
 
   const adicionarUm = (r) => {
-    importarLeads([
+    const { adicionados } = importarLeads([
       {
         nome: r.nome,
         empresa: r.nome,
@@ -216,7 +226,8 @@ export default function Buscar() {
           .join('\n'),
       },
     ])
-    toast.success(`${r.nome} adicionado aos leads!`)
+    if (adicionados) toast.success(`${r.nome} adicionado aos leads!`)
+    else toast.error(`Limite do plano atingido (${maxLeads} leads). Faça upgrade para adicionar mais.`)
   }
 
   const whatsappIA = async (r) => {

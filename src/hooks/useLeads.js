@@ -14,6 +14,12 @@ export function useLeads() {
     marcarContatado,
     registrarHistorico,
     importarLeads,
+    jaAbordados,
+    plano,
+    ehPremium,
+    pode,
+    maxLeads,
+    vagas,
   } = useStore()
 
   return {
@@ -25,6 +31,12 @@ export function useLeads() {
     marcarContatado,
     registrarHistorico,
     importarLeads,
+    jaAbordados,
+    plano,
+    ehPremium,
+    pode,
+    maxLeads,
+    vagas,
   }
 }
 
