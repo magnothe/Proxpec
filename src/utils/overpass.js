@@ -1,7 +1,7 @@
 // Busca real de comércios via OpenStreetMap (Nominatim + Overpass API).
 // Gratuito e sem chave. O Nominatim (geocodificação) aceita chamada direta do
 // navegador; o Overpass não — ele vai pelo nosso backend, veja abaixo.
-import { apenasDigitos } from './whatsapp'
+import { apenasDigitos, ehCelular } from './whatsapp'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
 
@@ -107,14 +107,40 @@ function distanciaMetros(aLat, aLon, bLat, bLon) {
 }
 
 function pegarTelefone(tags) {
-  return (
-    tags.phone ||
-    tags['contact:phone'] ||
-    tags['contact:mobile'] ||
-    tags['contact:phone:mobile'] ||
-    tags['phone:mobile'] ||
-    ''
-  )
+  // O OSM permite VÁRIOS números no mesmo campo, separados por ';'
+  // (ex.: "+55 85 3181-9359;98969-3731"). Juntar tudo vira um número
+  // inválido de 28 dígitos e o link do WhatsApp sai quebrado — por isso
+  // separamos e escolhemos um só.
+  const candidatos = [
+    tags['contact:mobile'],
+    tags['phone:mobile'],
+    tags['contact:phone:mobile'],
+    tags.phone,
+    tags['contact:phone'],
+  ]
+    .filter(Boolean)
+    .flatMap((v) => String(v).split(';'))
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  // Nessas listas o DDD costuma aparecer só no primeiro número; os seguintes
+  // vêm soltos ("...3181-9359;98969-3731"). Sem herdar o DDD, os celulares do
+  // meio da lista seriam descartados por parecerem números curtos demais.
+  const normalizados = []
+  let ddd = ''
+  for (const bruto of candidatos) {
+    let n = apenasDigitos(bruto)
+    if (n.startsWith('55') && n.length > 11) n = n.slice(2)
+    if (n.length === 10 || n.length === 11) {
+      ddd = n.slice(0, 2)
+      normalizados.push(n)
+    } else if ((n.length === 8 || n.length === 9) && ddd) {
+      normalizados.push(ddd + n)
+    }
+  }
+
+  // Celular ganha do fixo: é o único que recebe WhatsApp.
+  return normalizados.find(ehCelular) || normalizados[0] || ''
 }
 
 function pegarSite(tags) {
@@ -222,16 +248,17 @@ export async function buscarComercios({ tipo, cidade }) {
       telefone: apenasDigitos(telefoneRaw),
       site,
       temSite: Boolean(site),
+      temCelular: ehCelular(telefoneRaw),
       lat,
       lon,
       cidade: local.nome,
     })
   }
 
-  // ordena: sem site primeiro (melhores oportunidades), depois com telefone
+  // ordena: com celular primeiro (é quem dá para abordar), depois sem site
   resultados.sort((a, b) => {
+    if (a.temCelular !== b.temCelular) return a.temCelular ? -1 : 1
     if (a.temSite !== b.temSite) return a.temSite ? 1 : -1
-    if (Boolean(a.telefone) !== Boolean(b.telefone)) return a.telefone ? -1 : 1
     return a.nome.localeCompare(b.nome)
   })
 

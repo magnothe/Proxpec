@@ -27,6 +27,20 @@ export function validarTelefone(telefone) {
 }
 
 /**
+ * Diz se o número é um CELULAR brasileiro (DDD + 9 dígitos começando com 9).
+ * Fixo não recebe WhatsApp, então é isso — e não `validarTelefone` — que
+ * decide se dá para mandar mensagem.
+ */
+export function ehCelular(telefone) {
+  let num = apenasDigitos(telefone)
+  if (num.length > 11 && num.startsWith('55')) num = num.slice(2)
+  if (num.length !== 11) return false
+  const ddd = parseInt(num.slice(0, 2), 10)
+  if (ddd < 11 || ddd > 99) return false
+  return num[2] === '9'
+}
+
+/**
  * Formata um telefone para exibição: (11) 99999-9999
  */
 export function formatarTelefone(telefone) {

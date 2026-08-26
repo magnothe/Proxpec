@@ -47,6 +47,10 @@ export default function Buscar() {
   const [tipo, setTipo] = useSessionStorage(`${CHAVE}:tipo`, 'restaurante')
   const [cidade, setCidade] = useSessionStorage(`${CHAVE}:cidade`, '')
   const [somenteSemSite, setSomenteSemSite] = useSessionStorage(`${CHAVE}:semSite`, false)
+  // Ligados por padrão: sem celular não dá para mandar WhatsApp, e quem já
+  // virou lead não deve reaparecer numa busca nova.
+  const [soComCelular, setSoComCelular] = useSessionStorage(`${CHAVE}:soCelular`, true)
+  const [esconderJaLead, setEsconderJaLead] = useSessionStorage(`${CHAVE}:esconderLead`, true)
   const [textoIA, setTextoIA] = useSessionStorage(`${CHAVE}:textoIA`, '')
   const [resultados, setResultados] = useSessionStorage(`${CHAVE}:resultados`, [])
   const [buscou, setBuscou] = useSessionStorage(`${CHAVE}:buscou`, false)
@@ -82,10 +86,18 @@ export default function Buscar() {
   const jaCadastrado = (r) =>
     (r.telefone && telefonesExistentes.has(r.telefone)) || nomesExistentes.has(r.nome.toLowerCase())
 
-  const visiveis = useMemo(
-    () => (somenteSemSite ? resultados.filter((r) => !r.temSite) : resultados),
-    [resultados, somenteSemSite]
-  )
+  const visiveis = useMemo(() => {
+    let lista = resultados
+    if (soComCelular) lista = lista.filter((r) => r.temCelular)
+    if (somenteSemSite) lista = lista.filter((r) => !r.temSite)
+    if (esconderJaLead) lista = lista.filter((r) => !jaCadastrado(r))
+    return lista
+    // jaCadastrado deriva desses dois conjuntos, por isso eles entram aqui.
+  }, [resultados, soComCelular, somenteSemSite, esconderJaLead, telefonesExistentes, nomesExistentes])
+
+  // Quanto cada filtro está escondendo — sem isso o usuário vê a lista encolher
+  // de 108 para 13 e acha que a busca falhou.
+  const escondidos = resultados.length - visiveis.length
 
   const executarBusca = async (tipoBusca = tipo, cidadeBusca = cidade) => {
     if (!cidadeBusca.trim()) {
@@ -105,8 +117,14 @@ export default function Buscar() {
       if (res.length === 0) {
         toast('Nenhum comércio encontrado nessa cidade para esse tipo.', { icon: '🔍' })
       } else {
-        const semSite = res.filter((r) => !r.temSite).length
-        toast.success(`${res.length} encontrados · ${semSite} sem site (oportunidades!)`)
+        const comCelular = res.filter((r) => r.temCelular).length
+        toast.success(`${res.length} encontrados · ${comCelular} com celular para WhatsApp`)
+        if (comCelular === 0) {
+          toast('Nenhum tem celular no OpenStreetMap. Desmarque "Só com celular" para ver todos.', {
+            icon: '📵',
+            duration: 6000,
+          })
+        }
         if (truncado) {
           toast('A cidade tem mais do que coube nesta busca. Busque por bairro para ver o resto.', {
             icon: '✂️',
@@ -326,6 +344,24 @@ export default function Buscar() {
             <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
               <input
                 type="checkbox"
+                checked={soComCelular}
+                onChange={(e) => setSoComCelular(e.target.checked)}
+                className="h-4 w-4 accent-[#25D366]"
+              />
+              Só com celular
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={esconderJaLead}
+                onChange={(e) => setEsconderJaLead(e.target.checked)}
+                className="h-4 w-4 accent-[#25D366]"
+              />
+              Esconder quem já é lead
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
                 checked={somenteSemSite}
                 onChange={(e) => setSomenteSemSite(e.target.checked)}
                 className="h-4 w-4 accent-[#25D366]"
@@ -334,6 +370,9 @@ export default function Buscar() {
             </label>
             <span className="text-sm text-slate-500">
               {visiveis.length} exibido(s) · {selecionados.size} selecionado(s)
+              {escondidos > 0 && (
+                <span className="text-slate-600"> · {escondidos} ocultos pelos filtros</span>
+              )}
             </span>
           </div>
           <button className="btn-primary" onClick={adicionarSelecionados} disabled={selecionados.size === 0}>
@@ -357,8 +396,12 @@ export default function Buscar() {
       ) : visiveis.length === 0 ? (
         <EmptyState
           icone={Search}
-          titulo="Nada encontrado"
-          descricao="Tente outra cidade, outro tipo, ou desative o filtro 'só sem site'."
+          titulo={escondidos > 0 ? 'Tudo foi filtrado' : 'Nada encontrado'}
+          descricao={
+            escondidos > 0
+              ? `A busca trouxe ${resultados.length} resultado(s), mas os filtros acima esconderam todos. Desmarque algum para ver.`
+              : 'Tente outra cidade ou outro tipo de comércio.'
+          }
         />
       ) : (
         <div className="space-y-2.5">
@@ -418,9 +461,13 @@ export default function Buscar() {
                           <MapPin size={11} /> {r.endereco}
                         </span>
                       )}
-                      {r.telefone ? (
+                      {r.temCelular ? (
                         <span className="inline-flex items-center gap-1 text-slate-400">
                           <Phone size={11} /> {formatarTelefone(r.telefone)}
+                        </span>
+                      ) : r.telefone ? (
+                        <span className="inline-flex items-center gap-1 text-slate-600">
+                          <Phone size={11} /> {formatarTelefone(r.telefone)} · fixo, sem WhatsApp
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-slate-600">
@@ -431,7 +478,7 @@ export default function Buscar() {
                   </div>
 
                   <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
-                    {r.telefone && (
+                    {r.temCelular && (
                       <button
                         className="btn-primary !px-3 !py-1.5 text-xs"
                         onClick={() => whatsappIA(r)}
