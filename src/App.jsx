@@ -11,6 +11,8 @@ import Leads from './pages/Leads'
 import Templates from './pages/Templates'
 import Disparo from './pages/Disparo'
 import Config from './pages/Config'
+import Planos from './pages/Planos'
+import LembretePremium from './components/LembretePremium'
 
 function Splash({ texto = 'Carregando...' }) {
   return (
@@ -29,17 +31,22 @@ function AppRoutes() {
   const { carregado } = useStore()
   if (!carregado) return <Splash texto="Carregando seus dados..." />
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/buscar" element={<Buscar />} />
-        <Route path="/leads" element={<Leads />} />
-        <Route path="/templates" element={<Templates />} />
-        <Route path="/disparo" element={<Disparo />} />
-        <Route path="/config" element={<Config />} />
-        <Route path="*" element={<Dashboard />} />
-      </Route>
-    </Routes>
+    <>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/buscar" element={<Buscar />} />
+          <Route path="/leads" element={<Leads />} />
+          <Route path="/templates" element={<Templates />} />
+          <Route path="/disparo" element={<Disparo />} />
+          <Route path="/config" element={<Config />} />
+          <Route path="/planos" element={<Planos />} />
+          <Route path="*" element={<Dashboard />} />
+        </Route>
+      </Routes>
+      {/* Lembrete de upgrade: some sozinho quando o plano é premium. */}
+      <LembretePremium />
+    </>
   )
 }
 

@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   Send,
   Settings,
+  Crown,
   Radar,
   LogOut,
   Cloud,
@@ -21,6 +22,7 @@ const NAV = [
   { to: '/leads', label: 'Leads', curto: 'Leads', icone: Users },
   { to: '/templates', label: 'Templates', curto: 'Modelos', icone: MessageSquareText },
   { to: '/disparo', label: 'Disparo', curto: 'Disparo', icone: Send },
+  { to: '/planos', label: 'Planos', curto: 'Planos', icone: Crown },
   { to: '/config', label: 'Configurações', curto: 'Config', icone: Settings },
 ]
 

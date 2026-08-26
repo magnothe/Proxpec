@@ -49,6 +49,32 @@ export function AuthProvider({ children }) {
     }
   }
 
+  /**
+   * Cria uma conta nova. Devolve { precisaConfirmar } para a tela saber se
+   * já entrou direto ou se o usuário precisa clicar no link do e-mail.
+   */
+  const cadastrar = async (email, senha) => {
+    if (!supabaseConfigurado) throw new Error('Supabase não configurado.')
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: senha,
+    })
+    if (error) {
+      if (/signups not allowed/i.test(error.message)) {
+        throw new Error('Os cadastros estão desativados no momento.')
+      }
+      if (/already registered|already been registered/i.test(error.message)) {
+        throw new Error('Esse e-mail já tem conta. Tente entrar.')
+      }
+      if (/password/i.test(error.message) && /least|short/i.test(error.message)) {
+        throw new Error('A senha precisa ter pelo menos 6 caracteres.')
+      }
+      throw new Error(error.message)
+    }
+    // Com confirmação de e-mail ligada, o signUp devolve usuário mas sem sessão.
+    return { precisaConfirmar: Boolean(data.user) && !data.session }
+  }
+
   const sair = async () => {
     if (supabaseConfigurado) await supabase.auth.signOut()
     setSession(null)
@@ -60,6 +86,7 @@ export function AuthProvider({ children }) {
     session,
     usuario: session?.user || null,
     entrar,
+    cadastrar,
     sair,
   }
 

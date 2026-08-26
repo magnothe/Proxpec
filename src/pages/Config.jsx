@@ -20,7 +20,6 @@ import {
   Cloud,
 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
-import CartaoPlano from '../components/CartaoPlano'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useConfig } from '../hooks/useConfig'
 import { useStore } from '../context/StoreContext'
@@ -95,10 +94,6 @@ export default function Config() {
         titulo="Configurações"
         subtitulo="Dados do seu negócio e preferências de disparo."
       />
-
-      <div className="mb-6">
-        <CartaoPlano />
-      </div>
 
       {nuvem && (
         <div className="card mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
