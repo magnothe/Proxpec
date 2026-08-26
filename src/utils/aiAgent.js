@@ -118,9 +118,17 @@ export async function interpretarBusca(texto, config) {
 /**
  * Gera uma mensagem de primeiro contato personalizada via IA para um negócio.
  */
-export async function gerarMensagemIA(negocio, config) {
+export async function gerarMensagemIA(negocio, config, modelo = '') {
   const nomeEmpresa = config.nomeEmpresa || 'um profissional de criação de sites'
+
+  // Quando existe um template cadastrado, ele manda: a IA adapta o texto do
+  // usuário em vez de inventar uma mensagem própria do zero.
+  const baseTemplate = modelo
+    ? `\nUse OBRIGATORIAMENTE esta mensagem como base, mantendo o tom, a estrutura e a oferta dela. Adapte apenas para encaixar neste negócio específico:\n"""\n${modelo}\n"""\n`
+    : ''
+
   const prompt = `Escreva UMA mensagem curta de primeiro contato por WhatsApp, em português brasileiro, tom simpático e profissional (2-4 frases, pode usar 1 emoji).
+${baseTemplate}
 Eu me chamo/represento: ${nomeEmpresa}. Vendo criação de sites profissionais.
 Estou entrando em contato com este negócio:
 - Nome: ${negocio.nome}

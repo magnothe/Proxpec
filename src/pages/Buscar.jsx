@@ -23,11 +23,19 @@ import { buscarComercios, TIPOS_COMERCIO } from '../utils/overpass'
 import { interpretarBusca, iaDisponivel, gerarMensagemIA } from '../utils/aiAgent'
 import { useLeads } from '../hooks/useLeads'
 import { useConfig } from '../hooks/useConfig'
-import { gerarLinkWhatsApp, formatarTelefone } from '../utils/whatsapp'
+import { useTemplates } from '../hooks/useTemplates'
+import {
+  gerarLinkWhatsApp,
+  formatarTelefone,
+  personalizarMensagem,
+  encontrarTemplate,
+  TEMPLATE_PRIMEIRO_CONTATO,
+} from '../utils/whatsapp'
 
 export default function Buscar() {
   const { leads, importarLeads, marcarContatado } = useLeads()
   const { config } = useConfig()
+  const { templates } = useTemplates()
   const temIA = iaDisponivel(config)
 
   const [tipo, setTipo] = useState('restaurante')
@@ -170,13 +178,27 @@ export default function Buscar() {
 
   const whatsappIA = async (r) => {
     if (!r.telefone) return toast.error('Este comércio não tem telefone no cadastro.')
-    let mensagem = `Olá! Tudo bem? Passando para falar sobre um site profissional para a ${r.nome}. Posso te mostrar alguns exemplos? 🚀`
+
+    // Quem vem da busca é sempre um contato novo, então usamos o template de
+    // primeiro contato. O comércio ainda não é lead, mas as variáveis do
+    // template ({{nome}}, {{empresa}}, {{segmento}}) esperam esse formato.
+    const template = encontrarTemplate(templates, TEMPLATE_PRIMEIRO_CONTATO)
+    const comoLead = { nome: r.nome, empresa: r.nome, segmento: r.tipoLabel }
+
+    let mensagem = template
+      ? personalizarMensagem(template.mensagem, comoLead)
+      : `Olá! Tudo bem? Passando para falar sobre um site profissional para a ${r.nome}. Posso te mostrar alguns exemplos? 🚀`
+
     if (temIA) {
       setGerandoMsg(r.osmId)
       try {
-        mensagem = await gerarMensagemIA(r, config)
+        // A IA adapta o template em vez de escrever do zero, para a mensagem
+        // continuar sendo a sua, com o seu tom.
+        mensagem = await gerarMensagemIA(r, config, template?.mensagem)
       } catch (e) {
-        toast(`IA falhou, usei mensagem padrão. (${e.message})`, { icon: '⚠️' })
+        toast(`IA falhou, usei o template ${template?.nome || 'padrão'}. (${e.message})`, {
+          icon: '⚠️',
+        })
       } finally {
         setGerandoMsg(null)
       }

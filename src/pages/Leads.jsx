@@ -20,7 +20,7 @@ import { useLeads, filtrarLeads } from '../hooks/useLeads'
 import { useTemplates } from '../hooks/useTemplates'
 import { useConfig } from '../hooks/useConfig'
 import { STATUS, STATUS_LISTA } from '../data/defaults'
-import { formatarTelefone, gerarLinkWhatsApp, personalizarMensagem } from '../utils/whatsapp'
+import { formatarTelefone, gerarLinkWhatsApp, personalizarMensagem, encontrarTemplate, TEMPLATE_PRIMEIRO_CONTATO } from '../utils/whatsapp'
 import { tempoRelativo } from '../utils/format'
 import { parseCSV, gerarCSV, baixarCSV } from '../utils/csv'
 
@@ -83,7 +83,7 @@ export default function Leads() {
   }
 
   const enviarWhatsApp = (lead) => {
-    const template = templates[0]
+    const template = encontrarTemplate(templates, TEMPLATE_PRIMEIRO_CONTATO)
     const msg = template ? personalizarMensagem(template.mensagem, lead) : `Olá, ${lead.nome}!`
     window.open(gerarLinkWhatsApp(lead.telefone, msg), '_blank', 'noopener')
     marcarContatado(lead.id, template?.nome, msg)

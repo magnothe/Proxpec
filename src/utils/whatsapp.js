@@ -63,6 +63,25 @@ export function gerarLinkWhatsApp(telefone, mensagem = '') {
 
 const LABEL_SEGMENTO = 'segmento'
 
+export const TEMPLATE_PRIMEIRO_CONTATO = 'Primeiro Contato'
+
+const semAcento = (s = '') =>
+  String(s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+/**
+ * Acha um template pelo nome (ignorando acentos e maiúsculas).
+ * Se não existir um com esse nome — porque foi renomeado ou excluído —
+ * cai para o primeiro da lista. Retorna null se não houver template nenhum.
+ */
+export function encontrarTemplate(templates = [], nome = TEMPLATE_PRIMEIRO_CONTATO) {
+  const alvo = semAcento(nome)
+  return templates.find((t) => semAcento(t.nome) === alvo) || templates[0] || null
+}
+
 /**
  * Substitui as variáveis {{nome}}, {{empresa}}, {{segmento}} pelos dados do lead.
  * Variáveis não encontradas são substituídas por string vazia (com trim de espaços duplos).

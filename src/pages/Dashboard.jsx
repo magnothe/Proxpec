@@ -20,7 +20,7 @@ import { useTemplates } from '../hooks/useTemplates'
 import { useConfig } from '../hooks/useConfig'
 import { STATUS, STATUS_LISTA } from '../data/defaults'
 import { ehHoje, tempoRelativo } from '../utils/format'
-import { gerarLinkWhatsApp, personalizarMensagem } from '../utils/whatsapp'
+import { gerarLinkWhatsApp, personalizarMensagem, encontrarTemplate, TEMPLATE_PRIMEIRO_CONTATO } from '../utils/whatsapp'
 
 function contarMensagens(leads) {
   return leads.reduce(
@@ -87,7 +87,7 @@ export default function Dashboard() {
   )
 
   const enviarRapido = (lead) => {
-    const template = templates[0]
+    const template = encontrarTemplate(templates, TEMPLATE_PRIMEIRO_CONTATO)
     const msg = template
       ? personalizarMensagem(template.mensagem, lead)
       : `Olá, ${lead.nome}!`
