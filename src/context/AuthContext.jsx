@@ -58,6 +58,14 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: senha,
+      options: {
+        // Sem isto o link de confirmação usa a "Site URL" do painel, que vem
+        // como http://localhost:3000 de fábrica — e o cliente clica no e-mail
+        // e cai numa página que não existe na máquina dele.
+        // `window.location.origin` acerta sozinho em cada ambiente: localhost
+        // no desenvolvimento, o domínio real em produção.
+        emailRedirectTo: window.location.origin,
+      },
     })
     if (error) {
       if (/signups not allowed/i.test(error.message)) {

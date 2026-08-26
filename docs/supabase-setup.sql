@@ -17,13 +17,13 @@ drop policy if exists "own_insert" on public.app_data;
 drop policy if exists "own_update" on public.app_data;
 
 create policy "own_select" on public.app_data
-  for select using (auth.uid() = user_id);
+  for select using ((select auth.uid()) = user_id);
 
 create policy "own_insert" on public.app_data
-  for insert with check (auth.uid() = user_id);
+  for insert with check ((select auth.uid()) = user_id);
 
 create policy "own_update" on public.app_data
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 -- =====================================================================
 -- 4) PLANOS  (free / premium)
@@ -46,10 +46,20 @@ drop policy if exists "perfil_own_select" on public.perfis;
 -- Só SELECT. Sem policy de insert/update, ninguém com a chave anon escreve
 -- aqui: só o service_role (seu backend / painel) consegue promover alguém.
 create policy "perfil_own_select" on public.perfis
-  for select using (auth.uid() = user_id);
+  for select using ((select auth.uid()) = user_id);
+
+-- IMPORTANTE: funções internas ficam no schema `private`, NUNCA no `public`.
+--
+-- Tudo que está em `public` vira endpoint HTTP automaticamente, em
+-- /rest/v1/rpc/<nome>, chamável por qualquer um com a chave publicável — que
+-- está visível no JavaScript do site. Uma função `security definer` exposta
+-- assim roda com permissões de administrador para um visitante anônimo.
+-- O schema `private` não é exposto pelo PostgREST.
+create schema if not exists private;
+revoke all on schema private from anon, authenticated;
 
 -- Cria o perfil automaticamente quando alguém se cadastra.
-create or replace function public.criar_perfil()
+create or replace function private.criar_perfil()
 returns trigger
 language plpgsql
 security definer
@@ -65,7 +75,10 @@ $$;
 drop trigger if exists ao_criar_usuario on auth.users;
 create trigger ao_criar_usuario
   after insert on auth.users
-  for each row execute function public.criar_perfil();
+  for each row execute function private.criar_perfil();
+
+-- Remove a versão antiga, que ficava exposta na API.
+drop function if exists public.criar_perfil();
 
 -- Preenche perfis para quem já existia antes desta migração.
 insert into public.perfis (user_id)
@@ -73,7 +86,14 @@ select id from auth.users
 on conflict (user_id) do nothing;
 
 -- Um plano premium vencido volta a valer como free.
-create or replace view public.meu_plano as
+--
+-- `security_invoker = on` é obrigatório aqui. Sem isso a view roda com as
+-- permissões de QUEM A CRIOU (comportamento padrão do Postgres), ignorando o
+-- RLS de quem consulta — é o que o verificador do Supabase acusa como
+-- "SECURITY DEFINER view". Com invoker ligado, a policy de perfis vale normal.
+create or replace view public.meu_plano
+with (security_invoker = on)
+as
 select
   user_id,
   case
@@ -105,7 +125,11 @@ where user_id = auth.uid();
 -- inteira — data ilegível simplesmente não bate a condição e o lead é mantido,
 -- que é o padrão seguro.
 
-create or replace function public.limpar_leads_antigos(dias int default 90)
+-- Fica em `private` pelo mesmo motivo da criar_perfil — e aqui o risco era
+-- concreto: em `public`, qualquer visitante anônimo podia chamar
+--   POST /rest/v1/rpc/limpar_leads_antigos  {"dias": 0}
+-- e apagar os leads de TODOS os usuários de uma vez.
+create or replace function private.limpar_leads_antigos(dias int default 90)
 returns integer
 language plpgsql
 security definer
@@ -141,13 +165,16 @@ begin
 end;
 $$;
 
+-- Remove a versão antiga, que ficava exposta na API.
+drop function if exists public.limpar_leads_antigos(int);
+
 -- Agenda para rodar toda madrugada (03:00 UTC = 00:00 em Brasília).
 -- Requer a extensão pg_cron habilitada em Database > Extensions.
 -- create extension if not exists pg_cron;
--- select cron.schedule('limpar-leads', '0 3 * * *', $$select public.limpar_leads_antigos(90)$$);
+-- select cron.schedule('limpar-leads', '0 3 * * *', $$select private.limpar_leads_antigos(90)$$);
 
--- Para testar antes de agendar, veja quantas contas SERIAM afetadas:
---   select public.limpar_leads_antigos(90);
+-- Para rodar na mão (aqui no SQL Editor funciona, pois usa service_role):
+--   select private.limpar_leads_antigos(90);
 
 -- =====================================================================
 -- 6) SEU ACESSO (dono do sistema) — PREMIUM VITALÍCIO
