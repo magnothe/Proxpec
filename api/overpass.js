@@ -6,15 +6,20 @@
 // a resposta sai sem o header e o navegador bloqueia antes do nosso código ver
 // qualquer coisa. Servidor->servidor não tem CORS, então aqui funciona sempre.
 
+// Servidores independentes de verdade. Cuidado ao mexer: overpass.kumi.systems
+// e overpass.private.coffee são a MESMA máquina (um é alias do outro), então
+// listar os dois não dá redundância nenhuma.
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass.osm.ch/api/interpreter',
   'https://overpass.osm.jp/api/interpreter',
 ]
 
 const RODADAS = 2
-const TIMEOUT_POR_TENTATIVA = 15000
+// Precisa ser MAIOR que o [timeout:N] da consulta (src/utils/overpass.js),
+// para o Overpass ter chance de responder o próprio erro antes de abortarmos.
+const TIMEOUT_POR_TENTATIVA = 22000
 
 // Orçamento total: precisamos responder ANTES de a Vercel matar a função,
 // senão o usuário recebe um 504 cru, sem mensagem de erro aproveitável.
@@ -99,21 +104,32 @@ export default async function handler(req, res) {
   }
 
   const prazo = Date.now() + ORCAMENTO_TOTAL
-  let ultimoErro = null
+  const falhas = []
 
   for (let rodada = 0; rodada < RODADAS; rodada++) {
     for (const endpoint of OVERPASS_ENDPOINTS) {
+      const host = new URL(endpoint).host
+
       // Sem tempo para mais uma tentativa completa: para agora e responde
       // com erro tratado, em vez de ser cortado no meio pela plataforma.
-      if (Date.now() + TIMEOUT_POR_TENTATIVA > prazo) break
+      if (Date.now() + TIMEOUT_POR_TENTATIVA > prazo) {
+        falhas.push(`${host}: pulado (sem tempo no orcamento da funcao)`)
+        continue
+      }
+
+      const inicio = Date.now()
       try {
         const dados = await tentarEndpoint(endpoint, query)
         res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600')
         res.status(200).json(dados)
         return
       } catch (e) {
-        ultimoErro = `${new URL(endpoint).host}: ${e.message}`
-        console.error('[overpass]', ultimoErro)
+        // "fetch failed" sozinho não diz nada: o motivo real (ENOTFOUND,
+        // ECONNREFUSED, timeout de conexão) vem dentro de e.cause.
+        const causa = e.cause ? ` [${e.cause.code || e.cause.message}]` : ''
+        const falha = `${host}: ${e.name}: ${e.message}${causa} (${Date.now() - inicio}ms)`
+        falhas.push(falha)
+        console.error('[overpass]', falha)
       }
     }
     if (rodada < RODADAS - 1) await esperar(1000)
@@ -121,6 +137,6 @@ export default async function handler(req, res) {
 
   res.status(503).json({
     erro: 'Os servidores do OpenStreetMap estao instaveis agora. Tente de novo em alguns segundos.',
-    detalhe: ultimoErro,
+    detalhe: falhas,
   })
 }

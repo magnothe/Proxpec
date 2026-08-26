@@ -79,7 +79,11 @@ function construirQuery(bbox, tags) {
       `  way["${k}"="${v}"](${b});`,
     ])
     .join('\n')
-  return `[out:json][timeout:40];\n(\n${linhas}\n);\nout center 150;`
+  // O timeout aqui é o que o Overpass usa internamente. Ele precisa ser MENOR
+  // que o TIMEOUT_POR_TENTATIVA do backend (api/overpass.js), senão nós
+  // abortamos a conexão antes de o servidor conseguir responder — e aí perdemos
+  // a mensagem de erro dele, que diria o motivo real.
+  return `[out:json][timeout:18];\n(\n${linhas}\n);\nout center 150;`
 }
 
 function pegarTelefone(tags) {
@@ -129,8 +133,16 @@ async function consultarOverpass(query) {
 
   if (!resp.ok) {
     // O backend manda { erro, detalhe } quando todos os servidores falharam.
+    // `detalhe` é a lista do que cada servidor respondeu — é isso que diz o
+    // motivo real da falha, então imprimimos um por linha.
     const corpo = await resp.json().catch(() => null)
-    if (corpo && corpo.detalhe) console.error('Detalhe do backend:', corpo.detalhe)
+    const detalhe = corpo && corpo.detalhe
+    if (Array.isArray(detalhe)) {
+      console.error('Falhas por servidor Overpass:')
+      detalhe.forEach((d) => console.error('  -', d))
+    } else if (detalhe) {
+      console.error('Detalhe do backend:', detalhe)
+    }
     throw new Error(
       (corpo && corpo.erro) ||
         'Os servidores de busca estão instáveis agora. Tente de novo em alguns segundos.'
