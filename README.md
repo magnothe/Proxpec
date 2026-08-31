@@ -2,16 +2,20 @@
 
 Aplicação web para prospecção de clientes do seu negócio de **criação de sites**. Cadastre leads, gerencie o funil de vendas e dispare mensagens personalizadas pelo WhatsApp com um clique (via `wa.me`).
 
-Feito com **React + Vite + Tailwind CSS**. Todos os dados ficam salvos **localmente no navegador** (localStorage) — nada vai para servidor nenhum.
+Feito com **React + Vite + Tailwind CSS**. Roda em dois modos: **local** (dados só no navegador, via localStorage) ou **em nuvem** com **Supabase**, que adiciona login e sincronização — com isolamento por usuário garantido por RLS no banco.
 
 ## Como rodar
 
 ```bash
 npm install
+cp .env.example .env.local   # opcional: preencha com seu projeto Supabase
 npm run dev
 ```
 
-Abra `http://localhost:5173`. Para gerar a versão de produção: `npm run build` e depois `npm run preview`.
+Sem `.env.local` o app roda em **modo local**: sem login, com os dados guardados
+apenas no navegador. Preenchendo as duas variáveis, ele passa a exigir login e a
+sincronizar na nuvem — ver `docs/supabase-setup.sql` para criar as tabelas e as
+políticas de segurança (RLS).
 
 ## Fluxo principal
 
