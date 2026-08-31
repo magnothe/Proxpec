@@ -10,6 +10,10 @@ import {
   Clock,
   StopCircle,
   Users,
+  Globe,
+  GlobeLock,
+  SkipForward,
+  X,
 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import StatusBadge from '../components/StatusBadge'
@@ -18,7 +22,34 @@ import { useLeads, filtrarLeads } from '../hooks/useLeads'
 import { useTemplates } from '../hooks/useTemplates'
 import { useConfig } from '../hooks/useConfig'
 import { STATUS_LISTA } from '../data/defaults'
+import { situacaoSite } from '../utils/site'
 import { gerarLinkWhatsApp, personalizarMensagem, formatarTelefone } from '../utils/whatsapp'
+
+/**
+ * Abre uma aba do WhatsApp e devolve a janela (ou null se o navegador barrou).
+ *
+ * ATENÇÃO: não passe 'noopener' aqui. O Chrome devolve `null` quando essa
+ * flag é usada, mesmo tendo aberto a aba normalmente — era isso que fazia o
+ * disparo em massa "não funcionar": a primeira aba abria, a segunda era lida
+ * como bloqueada e o envio parava com o aviso de pop-up. Zeramos o `opener`
+ * na mão logo depois, que dá a mesma proteção.
+ */
+function abrirWhatsApp(telefone, mensagem, alvo = '_blank') {
+  let janela = null
+  try {
+    janela = window.open(gerarLinkWhatsApp(telefone, mensagem), alvo)
+  } catch {
+    janela = null
+  }
+  if (janela) {
+    try {
+      janela.opener = null
+    } catch {
+      /* o navegador não deixou mexer; a aba abriu, que é o que importa */
+    }
+  }
+  return janela
+}
 
 export default function Disparo() {
   const { leads, marcarContatado, pode } = useLeads()
@@ -27,10 +58,15 @@ export default function Disparo() {
 
   const [status, setStatus] = useState('')
   const [segmento, setSegmento] = useState('')
+  // Padrão: quem NÃO tem site — é para esses que a oferta faz sentido.
+  const [filtroSite, setFiltroSite] = useState('sem')
   const [templateId, setTemplateId] = useState(templates[0]?.id || '')
   const [selecionados, setSelecionados] = useState(() => new Set())
   const [enviando, setEnviando] = useState(false)
   const [progresso, setProgresso] = useState(0)
+  // Modo fila: usado quando o navegador bloqueia pop-ups. Uma aba por clique,
+  // que o navegador sempre permite por ser gesto direto do usuário.
+  const [fila, setFila] = useState(null)
   const cancelarRef = useRef(false)
 
   useEffect(() => {
@@ -42,10 +78,12 @@ export default function Disparo() {
     [leads, config.segmentos]
   )
 
-  const filtrados = useMemo(
-    () => filtrarLeads(leads, { status, segmento }).filter((l) => l.telefone),
-    [leads, status, segmento]
-  )
+  const filtrados = useMemo(() => {
+    const base = filtrarLeads(leads, { status, segmento }).filter((l) => l.telefone)
+    if (filtroSite === 'sem') return base.filter((l) => situacaoSite(l) !== true)
+    if (filtroSite === 'com') return base.filter((l) => situacaoSite(l) === true)
+    return base
+  }, [leads, status, segmento, filtroSite])
 
   const template = useMemo(
     () => templates.find((t) => t.id === templateId),
@@ -80,8 +118,19 @@ export default function Disparo() {
 
   const abrirUm = (lead) => {
     const msg = mensagemDe(lead)
-    window.open(gerarLinkWhatsApp(lead.telefone, msg), '_blank', 'noopener')
+    const janela = abrirWhatsApp(lead.telefone, msg)
+    if (!janela) return toast.error('O navegador bloqueou a aba. Permita pop-ups para este site.')
     marcarContatado(lead.id, template?.nome, msg)
+  }
+
+  // Abre a conversa e já marca o lead como contatado. Devolve false quando o
+  // navegador barrou a aba, para quem chamou decidir o que fazer.
+  const disparar = (lead, alvo) => {
+    const msg = mensagemDe(lead)
+    const janela = abrirWhatsApp(lead.telefone, msg, alvo)
+    if (!janela) return false
+    marcarContatado(lead.id, template?.nome, msg)
+    return true
   }
 
   const abrirTodos = async () => {
@@ -91,31 +140,45 @@ export default function Disparo() {
     if (!template) return toast.error('Escolha um template.')
     if (listaSelecionada.length === 0) return toast.error('Selecione ao menos um lead.')
 
-    setEnviando(true)
-    setProgresso(0)
-    cancelarRef.current = false
+    const lista = listaSelecionada
     const intervalo = Math.max(0, Number(config.intervaloDisparo) || 0) * 1000
+    cancelarRef.current = false
 
-    toast.success(`Abrindo ${listaSelecionada.length} conversa(s)...`)
+    // A primeira aba abre ainda dentro do clique — se nem essa passar, o
+    // bloqueio de pop-ups é total e vamos direto para o modo fila.
+    if (!disparar(lista[0])) {
+      setFila({ lista, indice: 0 })
+      return toast(
+        'Pop-ups bloqueados. Liguei o modo fila: um clique por conversa, sem precisar liberar nada.',
+        { icon: '📋', duration: 7000 }
+      )
+    }
 
-    for (let i = 0; i < listaSelecionada.length; i++) {
+    if (lista.length === 1) {
+      return toast.success('Conversa aberta e lead marcado como contatado.')
+    }
+
+    setEnviando(true)
+    setProgresso(1)
+    toast.success(`Abrindo ${lista.length} conversas...`)
+
+    for (let i = 1; i < lista.length; i++) {
+      if (intervalo > 0) await new Promise((r) => setTimeout(r, intervalo))
       if (cancelarRef.current) {
         toast('Disparo interrompido.', { icon: '✋' })
         break
       }
-      const lead = listaSelecionada[i]
-      const msg = mensagemDe(lead)
-      const janela = window.open(gerarLinkWhatsApp(lead.telefone, msg), '_blank', 'noopener')
-      if (!janela) {
-        toast.error('O navegador bloqueou os pop-ups. Permita pop-ups para este site.')
+      if (!disparar(lista[i])) {
+        // Barrou no meio: em vez de perder o resto, passa o que faltou para a
+        // fila manual.
         setEnviando(false)
-        return
+        setFila({ lista, indice: i })
+        return toast(
+          `O navegador barrou a partir do ${i + 1}º. Continue pela fila abaixo (um clique por conversa).`,
+          { icon: '📋', duration: 7000 }
+        )
       }
-      marcarContatado(lead.id, template?.nome, msg)
       setProgresso(i + 1)
-      if (i < listaSelecionada.length - 1 && intervalo > 0) {
-        await new Promise((r) => setTimeout(r, intervalo))
-      }
     }
 
     setEnviando(false)
@@ -126,6 +189,25 @@ export default function Disparo() {
 
   const cancelar = () => {
     cancelarRef.current = true
+  }
+
+  // ---- Modo fila ----
+  const avancarFila = (enviar) => {
+    if (!fila) return
+    const lead = fila.lista[fila.indice]
+    if (enviar && lead) {
+      // Reaproveita sempre a mesma aba: não enche o navegador de abas.
+      if (!disparar(lead, 'prospecta-whatsapp')) {
+        return toast.error('Não consegui abrir a aba do WhatsApp. Verifique o bloqueador.')
+      }
+    }
+    const proximo = fila.indice + 1
+    if (proximo >= fila.lista.length) {
+      setFila(null)
+      toast.success('Fila concluída!')
+      return
+    }
+    setFila({ ...fila, indice: proximo })
   }
 
   if (leads.length === 0) {
@@ -146,15 +228,17 @@ export default function Disparo() {
     )
   }
 
+  const leadDaFila = fila ? fila.lista[fila.indice] : null
+
   return (
-    <div>
+    <div className={fila ? 'pb-40' : ''}>
       <PageHeader
         titulo="Disparo em lote"
-        subtitulo="Selecione os leads, escolha um template e abra as conversas no WhatsApp."
+        subtitulo="Filtre o nicho, marque quem não tem site e abra todas as conversas de uma vez."
       />
 
       {/* Configuração do disparo */}
-      <div className="card mb-5 grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
+      <div className="card mb-5 grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="label">Filtrar por status</label>
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -167,7 +251,7 @@ export default function Disparo() {
           </select>
         </div>
         <div>
-          <label className="label">Filtrar por segmento</label>
+          <label className="label">Nicho (segmento)</label>
           <select className="input" value={segmento} onChange={(e) => setSegmento(e.target.value)}>
             <option value="">Todos</option>
             {segmentos.map((s) => (
@@ -175,6 +259,18 @@ export default function Disparo() {
                 {s}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">Situação do site</label>
+          <select
+            className="input"
+            value={filtroSite}
+            onChange={(e) => setFiltroSite(e.target.value)}
+          >
+            <option value="sem">Só quem não tem site</option>
+            <option value="com">Só quem já tem site</option>
+            <option value="">Todos</option>
           </select>
         </div>
         <div>
@@ -206,7 +302,7 @@ export default function Disparo() {
             ) : (
               <Square size={18} />
             )}
-            Selecionar todos
+            {filtroSite === 'sem' ? 'Selecionar todos sem site' : 'Selecionar todos'}
           </button>
           <span className="text-sm text-slate-500">
             {listaSelecionada.length} de {filtrados.length} selecionado(s)
@@ -224,9 +320,9 @@ export default function Disparo() {
             <button
               className="btn-primary"
               onClick={abrirTodos}
-              disabled={listaSelecionada.length === 0 || !template}
+              disabled={listaSelecionada.length === 0 || !template || Boolean(fila)}
             >
-              <Rocket size={16} /> Abrir todos ({listaSelecionada.length})
+              <Rocket size={16} /> Enviar para {listaSelecionada.length} selecionado(s)
             </button>
           )}
         </div>
@@ -247,12 +343,13 @@ export default function Disparo() {
         <EmptyState
           icone={Send}
           titulo="Nenhum lead com esses filtros"
-          descricao="Ajuste os filtros de status/segmento (leads sem telefone são ocultados)."
+          descricao="Ajuste status, nicho ou a situação do site (leads sem telefone são ocultados)."
         />
       ) : (
         <div className="space-y-3">
           {filtrados.map((lead) => {
             const marcado = selecionados.has(lead.id)
+            const site = situacaoSite(lead)
             return (
               <div
                 key={lead.id}
@@ -279,6 +376,19 @@ export default function Disparo() {
                         <span className="text-sm text-slate-500">· {lead.empresa}</span>
                       )}
                       <StatusBadge status={lead.status} />
+                      {site === true ? (
+                        <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                          <Globe size={11} /> tem site
+                        </span>
+                      ) : site === false ? (
+                        <span className="flex items-center gap-1 text-[11px] text-amber-400">
+                          <GlobeLock size={11} /> sem site
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[11px] text-slate-600">
+                          <GlobeLock size={11} /> site não informado
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {formatarTelefone(lead.telefone)}
@@ -303,6 +413,40 @@ export default function Disparo() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Fila manual: aparece quando o navegador barra os pop-ups */}
+      {leadDaFila && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-surface-700 bg-surface-800/95 p-4 backdrop-blur">
+          <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Fila · {fila.indice + 1} de {fila.lista.length}
+              </p>
+              <p className="truncate font-medium text-slate-100">
+                {leadDaFila.nome}
+                <span className="ml-2 text-sm font-normal text-slate-500">
+                  {formatarTelefone(leadDaFila.telefone)}
+                </span>
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button className="btn-primary" onClick={() => avancarFila(true)}>
+                <MessageCircle size={16} /> Abrir e avançar
+              </button>
+              <button className="btn-ghost" onClick={() => avancarFila(false)}>
+                <SkipForward size={16} /> Pular
+              </button>
+              <button
+                className="btn-ghost"
+                onClick={() => setFila(null)}
+                aria-label="Encerrar fila"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

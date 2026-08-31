@@ -200,6 +200,7 @@ export default function Buscar() {
         empresa: r.nome,
         telefone: r.telefone,
         segmento: r.tipoLabel,
+        site: r.site || '',
         notas: [r.endereco, r.site ? `Site: ${r.site}` : 'Sem site', `Fonte: OpenStreetMap (${r.cidade})`]
           .filter(Boolean)
           .join('\n'),
@@ -221,6 +222,7 @@ export default function Buscar() {
         empresa: r.nome,
         telefone: r.telefone,
         segmento: r.tipoLabel,
+        site: r.site || '',
         notas: [r.endereco, r.site ? `Site: ${r.site}` : 'Sem site', `Fonte: OpenStreetMap (${r.cidade})`]
           .filter(Boolean)
           .join('\n'),
