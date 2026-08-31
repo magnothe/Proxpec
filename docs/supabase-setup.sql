@@ -186,7 +186,7 @@ drop function if exists public.limpar_leads_antigos(int);
 insert into public.perfis (user_id, plano, expira_em)
 select id, 'premium', null
   from auth.users
- where email = 'magnothefilho@gmail.com'
+ where email = 'seu-email@exemplo.com'  -- troque pelo e-mail da sua conta
 on conflict (user_id) do update
   set plano = 'premium',
       expira_em = null;

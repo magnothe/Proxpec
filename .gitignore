@@ -4,3 +4,11 @@ dist-ssr
 *.local
 .DS_Store
 .vite
+
+# Claude Code
+.claude
+
+# Variaveis de ambiente
+.env
+.env.*
+!.env.example
