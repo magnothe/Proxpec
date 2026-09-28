@@ -37,10 +37,10 @@ import {
 const CHAVE = 'prospecta:buscar'
 
 export default function Buscar() {
-  const { leads, importarLeads, marcarContatado, jaAbordados, maxLeads, pode } = useLeads()
+  const { leads, importarLeads, marcarContatado, jaAbordados } = useLeads()
   const { config } = useConfig()
   const { templates } = useTemplates()
-  const temIA = iaDisponivel(config, pode('ia'))
+  const temIA = iaDisponivel(config)
 
   // Estado da busca: fica no sessionStorage para sobreviver à troca de página
   // (o React Router desmonta esta tela ao navegar, zerando qualquer useState).
@@ -153,7 +153,7 @@ export default function Buscar() {
     }
     setInterpretando(true)
     try {
-      const r = await interpretarBusca(textoIA, config, pode('ia'))
+      const r = await interpretarBusca(textoIA, config)
       if (r._erroIA) toast(`IA indisponível, usei interpretação simples. (${r._erroIA})`, { icon: '⚠️' })
       const novoTipo = r.tipo || tipo
       const novaCidade = r.cidade || cidade
@@ -194,7 +194,7 @@ export default function Buscar() {
       toast.error('Selecione ao menos um comércio novo.')
       return
     }
-    const { adicionados, bloqueados } = importarLeads(
+    const { adicionados } = importarLeads(
       escolhidos.map((r) => ({
         nome: r.nome,
         empresa: r.nome,
@@ -206,12 +206,7 @@ export default function Buscar() {
           .join('\n'),
       }))
     )
-    if (adicionados) toast.success(`${adicionados} comércio(s) adicionado(s) aos seus leads!`)
-    if (bloqueados) {
-      toast.error(`${bloqueados} não couberam: seu plano permite ${maxLeads} leads.`, {
-        duration: 6000,
-      })
-    }
+    if (adicionados) toast.success(` comércio(s) adicionado(s) aos seus leads!`)
     setSelecionados(new Set())
   }
 
@@ -228,8 +223,7 @@ export default function Buscar() {
           .join('\n'),
       },
     ])
-    if (adicionados) toast.success(`${r.nome} adicionado aos leads!`)
-    else toast.error(`Limite do plano atingido (${maxLeads} leads). Faça upgrade para adicionar mais.`)
+    if (adicionados) toast.success(` adicionado aos leads!`)
   }
 
   const whatsappIA = async (r) => {

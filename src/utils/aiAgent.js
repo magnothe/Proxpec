@@ -6,9 +6,8 @@ import { TIPOS_COMERCIO, tipoPorValor } from './overpass'
 export const MODELO_PADRAO = 'claude-haiku-4-5-20251001'
 const API_URL = 'https://api.anthropic.com/v1/messages'
 
-export function iaDisponivel(config, podeUsarIA = true) {
-  // A chave sozinha nao basta: a IA e recurso do plano Premium.
-  return podeUsarIA && Boolean(config?.iaApiKey && config.iaApiKey.trim())
+export function iaDisponivel(config) {
+  return Boolean(config?.iaApiKey && config.iaApiKey.trim())
 }
 
 async function chamarClaude(config, prompt, maxTokens = 400) {
@@ -104,8 +103,8 @@ export function interpretarBuscaHeuristica(texto) {
 /**
  * Interpreta a busca — usa IA se disponível, senão heurística.
  */
-export async function interpretarBusca(texto, config, podeUsarIA = true) {
-  if (iaDisponivel(config, podeUsarIA)) {
+export async function interpretarBusca(texto, config) {
+  if (iaDisponivel(config)) {
     try {
       return await interpretarBuscaIA(texto, config)
     } catch (e) {

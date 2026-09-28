@@ -15,11 +15,6 @@ export function useLeads() {
     registrarHistorico,
     importarLeads,
     jaAbordados,
-    plano,
-    ehPremium,
-    pode,
-    maxLeads,
-    vagas,
   } = useStore()
 
   return {
@@ -32,11 +27,6 @@ export function useLeads() {
     registrarHistorico,
     importarLeads,
     jaAbordados,
-    plano,
-    ehPremium,
-    pode,
-    maxLeads,
-    vagas,
   }
 }
 

@@ -6,7 +6,6 @@ import {
   MessageSquareText,
   Send,
   Settings,
-  Crown,
   Radar,
   LogOut,
   Cloud,
@@ -22,7 +21,6 @@ const NAV = [
   { to: '/leads', label: 'Leads', curto: 'Leads', icone: Users },
   { to: '/templates', label: 'Templates', curto: 'Modelos', icone: MessageSquareText },
   { to: '/disparo', label: 'Disparo', curto: 'Disparo', icone: Send },
-  { to: '/planos', label: 'Planos', curto: 'Planos', icone: Crown },
   { to: '/config', label: 'Configurações', curto: 'Config', icone: Settings },
 ]
 
@@ -41,7 +39,7 @@ function Logo() {
 }
 
 function RodapeConta() {
-  const { nuvem, sincronizando, erroSync, ehPremium } = useStore()
+  const { nuvem, sincronizando, erroSync } = useStore()
   const { usuario, sair } = useAuth()
 
   if (!nuvem) {
@@ -69,16 +67,9 @@ function RodapeConta() {
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1.5 px-1">
-        <span className="truncate text-[11px] text-slate-500" title={usuario?.email}>
+      <div className="px-1">
+        <span className="block truncate text-[11px] text-slate-500" title={usuario?.email}>
           {usuario?.email}
-        </span>
-        <span
-          className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-            ehPremium ? 'bg-whatsapp/15 text-whatsapp' : 'bg-surface-800 text-slate-500'
-          }`}
-        >
-          {ehPremium ? 'PREMIUM' : 'GRÁTIS'}
         </span>
       </div>
       <button

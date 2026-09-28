@@ -33,8 +33,6 @@ export default function Leads() {
     mudarStatus,
     marcarContatado,
     importarLeads,
-    maxLeads,
-    pode,
   } = useLeads()
   const { templates } = useTemplates()
   const { config } = useConfig()
@@ -73,10 +71,7 @@ export default function Leads() {
       atualizarLead(editando.id, dados)
       toast.success('Lead atualizado!')
     } else {
-      if (!adicionarLead(dados)) {
-        toast.error(`Limite do plano atingido (${maxLeads} leads). Apague algum ou faça upgrade.`)
-        return
-      }
+      adicionarLead(dados)
       toast.success('Lead adicionado!')
     }
   }
@@ -98,10 +93,6 @@ export default function Leads() {
   const exportar = () => {
     if (leads.length === 0) {
       toast.error('Não há leads para exportar.')
-      return
-    }
-    if (!pode('exportarCsv')) {
-      toast.error('Exportar CSV é do plano Premium.')
       return
     }
     const csv = gerarCSV(filtrados, [
@@ -127,9 +118,8 @@ export default function Leads() {
           toast.error('Nenhum lead válido encontrado. Verifique o cabeçalho: nome, telefone, empresa, segmento.')
           return
         }
-        const { adicionados, bloqueados } = importarLeads(validos)
+        const { adicionados } = importarLeads(validos)
         if (adicionados) toast.success(`${adicionados} lead(s) importado(s) com sucesso!`)
-        if (bloqueados) toast.error(`${bloqueados} não couberam: seu plano permite ${maxLeads} leads.`)
       } catch (err) {
         console.error(err)
         toast.error('Erro ao ler o arquivo CSV.')
