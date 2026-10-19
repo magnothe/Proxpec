@@ -3,8 +3,56 @@
 @tailwind utilities;
 
 @layer base {
+  /* ===================================================================
+     TEMAS
+     ===================================================================
+     Os valores saem em canais RGB separados por espaço (e não `#0a0f14`)
+     porque o Tailwind os injeta dentro de `rgb(var(--x) / <alpha-value>)`.
+     É isso que faz `bg-surface-900/80` continuar funcionando.
+
+     O TEMA CLARO é o padrão aqui no `:root` e o escuro vive em `.dark`.
+     A classe fica no <html> e quem a coloca é o script inline do index.html,
+     antes da primeira pintura — ver o comentário lá.
+
+     A escala é semântica, não literal: surface-950 é sempre "o fundo da
+     página" e content-100 é sempre "o texto mais forte", em qualquer tema.
+     Por isso a ordem dos tons se inverte entre um e outro. */
   :root {
+    color-scheme: light;
+
+    --surface-950: 241 245 249; /* fundo da página     */
+    --surface-900: 255 255 255; /* cartões, sidebar    */
+    --surface-800: 248 250 252; /* campos, hover       */
+    --surface-700: 226 232 240; /* bordas, divisores   */
+    --surface-600: 203 213 225; /* bordas mais fortes  */
+
+    --content-100: 15 23 42; /* títulos             */
+    --content-200: 30 41 59;
+    --content-300: 51 65 85;
+    --content-400: 71 85 105; /* rótulos, ícones     */
+    --content-500: 100 116 139; /* texto secundário    */
+    --content-600: 148 163 184; /* texto mais apagado  */
+
+    --overlay: 15 23 42; /* véu atrás dos modais */
+  }
+
+  .dark {
     color-scheme: dark;
+
+    --surface-950: 10 15 20;
+    --surface-900: 15 21 28;
+    --surface-800: 22 30 39;
+    --surface-700: 30 40 51;
+    --surface-600: 42 55 68;
+
+    --content-100: 241 245 249;
+    --content-200: 226 232 240;
+    --content-300: 203 213 225;
+    --content-400: 148 163 184;
+    --content-500: 100 116 139;
+    --content-600: 71 85 105;
+
+    --overlay: 0 0 0;
   }
 
   html,
@@ -14,7 +62,12 @@
   }
 
   body {
-    @apply bg-surface-950 text-slate-200 font-sans antialiased;
+    @apply bg-surface-950 text-content-200 font-sans antialiased;
+    /* A troca de tema fica menos agressiva com uma transição curta. Só cor:
+       animar outras propriedades aqui pesaria em toda rolagem da página. */
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
 
   h1,
@@ -45,22 +98,22 @@
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-950 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-whatsapp text-surface-950 hover:bg-whatsapp-light focus:ring-whatsapp;
+    @apply btn bg-whatsapp text-onAccent hover:bg-whatsapp-light focus:ring-whatsapp;
   }
   .btn-ghost {
-    @apply btn bg-surface-800 text-slate-200 hover:bg-surface-700 focus:ring-surface-600;
+    @apply btn bg-surface-800 text-content-200 hover:bg-surface-700 focus:ring-surface-600;
   }
   .btn-danger {
-    @apply btn bg-red-500/10 text-red-400 hover:bg-red-500/20 focus:ring-red-500;
+    @apply btn bg-red-500/10 text-red-500 hover:bg-red-500/20 focus:ring-red-500 dark:text-red-400;
   }
   .btn-icon {
-    @apply inline-flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-surface-700 text-slate-400 hover:text-slate-100;
+    @apply inline-flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-surface-700 text-content-400 hover:text-content-100;
   }
   .input {
-    @apply w-full rounded-lg border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-whatsapp focus:outline-none focus:ring-1 focus:ring-whatsapp transition-colors;
+    @apply w-full rounded-lg border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-content-100 placeholder:text-content-500 focus:border-whatsapp focus:outline-none focus:ring-1 focus:ring-whatsapp transition-colors;
   }
   .label {
-    @apply block text-xs font-medium uppercase tracking-wide text-slate-400 mb-1.5;
+    @apply block text-xs font-medium uppercase tracking-wide text-content-400 mb-1.5;
   }
   .card {
     @apply rounded-xl border border-surface-700 bg-surface-900/80 backdrop-blur;

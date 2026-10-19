@@ -1,11 +1,39 @@
 <!doctype html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0a0f14" />
     <title>Prospecta — CRM de Prospecção</title>
+
+    <!--
+      Decide o tema ANTES de o navegador pintar qualquer coisa.
+
+      Precisa ser inline e ficar aqui no <head>: se isso esperasse o React
+      subir, a página apareceria por um instante no tema errado — o clássico
+      flash branco de quem usa o tema escuro. Por isso também não dá para
+      mover para um arquivo .js separado (o download atrasaria a pintura).
+
+      A regra: o que o usuário escolheu manda; sem escolha, segue o sistema.
+    -->
+    <script>
+      ;(function () {
+        try {
+          var salvo = localStorage.getItem('prospecta:tema')
+          var escuro = salvo
+            ? salvo === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+          if (escuro) document.documentElement.classList.add('dark')
+          document
+            .querySelector('meta[name="theme-color"]')
+            .setAttribute('content', escuro ? '#0a0f14' : '#f1f5f9')
+        } catch (e) {
+          // localStorage bloqueado: cai no tema claro do CSS, sem quebrar nada.
+        }
+      })()
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

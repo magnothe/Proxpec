@@ -14,8 +14,8 @@ import Config from './pages/Config'
 
 function Splash({ texto = 'Carregando...' }) {
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-4 text-slate-400">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-whatsapp text-surface-950 shadow-glow">
+    <div className="flex min-h-full flex-col items-center justify-center gap-4 text-content-400">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-whatsapp text-onAccent shadow-glow">
         <Send size={26} />
       </div>
       <div className="flex items-center gap-2 text-sm">
@@ -62,13 +62,13 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#161e27',
-            color: '#e2e8f0',
-            border: '1px solid #2a3744',
+            background: 'rgb(var(--surface-800))',
+            color: 'rgb(var(--content-200))',
+            border: '1px solid rgb(var(--surface-600))',
             fontSize: '14px',
           },
-          success: { iconTheme: { primary: '#25D366', secondary: '#0a0f14' } },
-          error: { iconTheme: { primary: '#f87171', secondary: '#0a0f14' } },
+          success: { iconTheme: { primary: '#25D366', secondary: 'rgb(var(--surface-800))' } },
+          error: { iconTheme: { primary: '#f87171', secondary: 'rgb(var(--surface-800))' } },
         }}
       />
     </AuthProvider>

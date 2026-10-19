@@ -11,7 +11,7 @@ export default function ConfirmDialog({
 }) {
   return (
     <Modal aberto={aberto} aoFechar={aoFechar} titulo={titulo} largura="max-w-md">
-      <p className="text-sm text-slate-300">{mensagem}</p>
+      <p className="text-sm text-content-300">{mensagem}</p>
       <div className="mt-6 flex justify-end gap-3">
         <button className="btn-ghost" onClick={aoFechar}>
           Cancelar

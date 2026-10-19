@@ -88,7 +88,7 @@ function TemplateForm({ inicial, aoSalvar, aoFechar }) {
           onChange={(e) => setMensagem(e.target.value)}
           placeholder="Olá, {{nome}}! Vi que a {{empresa}}..."
         />
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-content-500">
           Use as variáveis {VARIAVEIS.map((v) => v.chave).join(', ')} — elas são substituídas
           automaticamente pelos dados de cada lead.
         </p>
@@ -99,8 +99,12 @@ function TemplateForm({ inicial, aoSalvar, aoFechar }) {
         <label className="label flex items-center gap-1.5">
           <Sparkles size={13} /> Prévia (com dados de exemplo)
         </label>
+        {/* A prévia imita a tela do WhatsApp, então as cores dela são fixas nos
+            dois temas — é o visual do WhatsApp, não o do app. Por isso o texto
+            aqui dentro também não usa os tokens de tema: sobre o verde escuro
+            da bolha, `text-content-100` viraria quase preto no tema claro. */}
         <div className="rounded-xl bg-[#0b141a] p-3">
-          <div className="ml-auto max-w-[85%] rounded-xl rounded-tr-sm bg-[#005c4b] px-3 py-2 text-sm text-slate-100 shadow">
+          <div className="ml-auto max-w-[85%] rounded-xl rounded-tr-sm bg-[#005c4b] px-3 py-2 text-sm text-slate-50 shadow">
             {preview || <span className="text-slate-400">A prévia aparece aqui...</span>}
           </div>
         </div>
@@ -181,8 +185,8 @@ export default function Templates() {
             <div key={t.id} className="card flex flex-col p-5">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-base font-semibold text-slate-100">{t.nome}</h3>
-                  <p className="text-[11px] text-slate-500">Criado em {formatarData(t.criadoEm)}</p>
+                  <h3 className="font-display text-base font-semibold text-content-100">{t.nome}</h3>
+                  <p className="text-[11px] text-content-500">Criado em {formatarData(t.criadoEm)}</p>
                 </div>
                 <div className="flex gap-1">
                   <button className="btn-icon" onClick={() => copiar(t)} title="Copiar mensagem">
@@ -200,7 +204,7 @@ export default function Templates() {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 rounded-lg bg-surface-950/60 p-3 text-sm leading-relaxed text-slate-300">
+              <div className="flex-1 rounded-lg bg-surface-950/60 p-3 text-sm leading-relaxed text-content-300">
                 {t.mensagem}
               </div>
             </div>

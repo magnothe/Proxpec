@@ -10,12 +10,12 @@ export default function MetricCard({ icone: Icone, titulo, valor, sufixo, cor = 
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{titulo}</p>
-          <p className="mt-2 font-display text-3xl font-bold text-slate-100">
+          <p className="text-xs font-medium uppercase tracking-wide text-content-400">{titulo}</p>
+          <p className="mt-2 font-display text-3xl font-bold text-content-100">
             {valor}
-            {sufixo && <span className="ml-1 text-lg text-slate-400">{sufixo}</span>}
+            {sufixo && <span className="ml-1 text-lg text-content-400">{sufixo}</span>}
           </p>
-          {detalhe && <p className="mt-1 text-xs text-slate-500">{detalhe}</p>}
+          {detalhe && <p className="mt-1 text-xs text-content-500">{detalhe}</p>}
         </div>
         <div
           className="flex h-11 w-11 items-center justify-center rounded-xl"

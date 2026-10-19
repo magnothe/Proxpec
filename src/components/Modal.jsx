@@ -21,7 +21,7 @@ export default function Modal({ aberto, aoFechar, titulo, children, largura = 'm
       {aberto && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6">
           <motion.div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 bg-[rgb(var(--overlay))]/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -35,7 +35,7 @@ export default function Modal({ aberto, aoFechar, titulo, children, largura = 'm
             transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }}
           >
             <div className="mb-5 flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-slate-100">{titulo}</h2>
+              <h2 className="text-lg font-semibold text-content-100">{titulo}</h2>
               <button className="btn-icon" onClick={aoFechar} aria-label="Fechar">
                 <X size={18} />
               </button>

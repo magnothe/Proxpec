@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useStore } from '../context/StoreContext'
+import ThemeToggle from './ThemeToggle'
 
 const NAV = [
   { to: '/', label: 'Dashboard', curto: 'Início', icone: LayoutDashboard, exato: true },
@@ -27,12 +28,12 @@ const NAV = [
 function Logo() {
   return (
     <div className="flex items-center gap-2.5 px-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-whatsapp text-surface-950 shadow-glow">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-whatsapp text-onAccent shadow-glow">
         <Send size={18} />
       </div>
       <div className="leading-tight">
-        <p className="font-display text-base font-bold text-slate-100">Prospecta</p>
-        <p className="text-[11px] text-slate-500">CRM de prospecção</p>
+        <p className="font-display text-base font-bold text-content-100">Prospecta</p>
+        <p className="text-[11px] text-content-500">CRM de prospecção</p>
       </div>
     </div>
   )
@@ -44,7 +45,7 @@ function RodapeConta() {
 
   if (!nuvem) {
     return (
-      <div className="border-t border-surface-700 p-4 text-[11px] text-slate-500">
+      <div className="border-t border-surface-700 p-4 text-[11px] text-content-500">
         Dados salvos localmente neste navegador.
       </div>
     )
@@ -58,7 +59,7 @@ function RodapeConta() {
             <CloudOff size={13} /> sem conexão
           </span>
         ) : sincronizando ? (
-          <span className="flex items-center gap-1 text-slate-400">
+          <span className="flex items-center gap-1 text-content-400">
             <RefreshCw size={13} className="animate-spin" /> salvando...
           </span>
         ) : (
@@ -68,7 +69,7 @@ function RodapeConta() {
         )}
       </div>
       <div className="px-1">
-        <span className="block truncate text-[11px] text-slate-500" title={usuario?.email}>
+        <span className="block truncate text-[11px] text-content-500" title={usuario?.email}>
           {usuario?.email}
         </span>
       </div>
@@ -77,7 +78,7 @@ function RodapeConta() {
           await sair()
           toast.success('Você saiu da conta.')
         }}
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-surface-800 hover:text-slate-100"
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-content-400 transition-colors hover:bg-surface-800 hover:text-content-100"
       >
         <LogOut size={17} /> Sair
       </button>
@@ -103,7 +104,7 @@ export default function Sidebar() {
                 `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-whatsapp/12 text-whatsapp'
-                    : 'text-slate-400 hover:bg-surface-800 hover:text-slate-100'
+                    : 'text-content-400 hover:bg-surface-800 hover:text-content-100'
                 }`
               }
             >
@@ -112,6 +113,9 @@ export default function Sidebar() {
             </NavLink>
           ))}
         </nav>
+        <div className="px-3 pb-2">
+          <ThemeToggle variante="item" />
+        </div>
         <RodapeConta />
       </aside>
 
@@ -124,7 +128,7 @@ export default function Sidebar() {
             end={exato}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors ${
-                isActive ? 'text-whatsapp' : 'text-slate-500 hover:text-slate-300'
+                isActive ? 'text-whatsapp' : 'text-content-500 hover:text-content-300'
               }`
             }
           >

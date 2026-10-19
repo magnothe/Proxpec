@@ -292,7 +292,7 @@ export default function Disparo() {
         <div className="flex items-center gap-3">
           <button
             onClick={toggleTodos}
-            className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-slate-100"
+            className="flex items-center gap-2 text-sm font-medium text-content-300 hover:text-content-100"
           >
             {todosSelecionados ? (
               <CheckSquare size={18} className="text-whatsapp" />
@@ -301,12 +301,12 @@ export default function Disparo() {
             )}
             {filtroSite === 'sem' ? 'Selecionar todos sem site' : 'Selecionar todos'}
           </button>
-          <span className="text-sm text-slate-500">
+          <span className="text-sm text-content-500">
             {listaSelecionada.length} de {filtrados.length} selecionado(s)
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-xs text-slate-500">
+          <span className="flex items-center gap-1 text-xs text-content-500">
             <Clock size={13} /> Intervalo: {config.intervaloDisparo}s
           </span>
           {enviando ? (
@@ -357,7 +357,7 @@ export default function Disparo() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                   <button
                     onClick={() => toggle(lead.id)}
-                    className="mt-0.5 shrink-0 text-slate-400 hover:text-whatsapp"
+                    className="mt-0.5 shrink-0 text-content-400 hover:text-whatsapp"
                     aria-label="Selecionar lead"
                   >
                     {marcado ? (
@@ -368,13 +368,13 @@ export default function Disparo() {
                   </button>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-100">{lead.nome}</span>
+                      <span className="font-medium text-content-100">{lead.nome}</span>
                       {lead.empresa && (
-                        <span className="text-sm text-slate-500">· {lead.empresa}</span>
+                        <span className="text-sm text-content-500">· {lead.empresa}</span>
                       )}
                       <StatusBadge status={lead.status} />
                       {site === true ? (
-                        <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1 text-[11px] text-content-500">
                           <Globe size={11} /> tem site
                         </span>
                       ) : site === false ? (
@@ -382,18 +382,22 @@ export default function Disparo() {
                           <GlobeLock size={11} /> sem site
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-[11px] text-slate-600">
+                        <span className="flex items-center gap-1 text-[11px] text-content-600">
                           <GlobeLock size={11} /> site não informado
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="mt-0.5 text-xs text-content-500">
                       {formatarTelefone(lead.telefone)}
                       {lead.segmento ? ` · ${lead.segmento}` : ''}
                     </p>
+                    {/* Igual à prévia em Templates: cores do WhatsApp, fixas nos dois
+                        temas. A bolha não pode usar `bg-surface-700`, que clareia no
+                        tema claro e deixaria um retângulo claro dentro do fundo
+                        escuro do "chat". */}
                     {template && (
                       <div className="mt-2 rounded-lg bg-[#0b141a] p-2.5">
-                        <div className="max-w-[90%] rounded-lg rounded-tl-sm bg-surface-700/70 px-3 py-2 text-[13px] leading-relaxed text-slate-200">
+                        <div className="max-w-[90%] rounded-lg rounded-tl-sm bg-[#202c33] px-3 py-2 text-[13px] leading-relaxed text-slate-100">
                           {mensagemDe(lead)}
                         </div>
                       </div>
@@ -418,12 +422,12 @@ export default function Disparo() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-surface-700 bg-surface-800/95 p-4 backdrop-blur">
           <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs uppercase tracking-wide text-slate-500">
+              <p className="text-xs uppercase tracking-wide text-content-500">
                 Fila · {fila.indice + 1} de {fila.lista.length}
               </p>
-              <p className="truncate font-medium text-slate-100">
+              <p className="truncate font-medium text-content-100">
                 {leadDaFila.nome}
-                <span className="ml-2 text-sm font-normal text-slate-500">
+                <span className="ml-2 text-sm font-normal text-content-500">
                   {formatarTelefone(leadDaFila.telefone)}
                 </span>
               </p>

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Send, Loader2, Lock, Mail, UserPlus, MailCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import ThemeToggle from '../components/ThemeToggle'
 
 export default function Login() {
   const { entrar, cadastrar } = useAuth()
@@ -51,21 +52,23 @@ export default function Login() {
   if (confirmeSeuEmail) {
     return (
       <div className="flex min-h-full items-center justify-center px-4 py-10">
+        {/* O login fica fora do Layout, então precisa do seu próprio botão. */}
+        <ThemeToggle className="fixed right-4 top-4 z-10" />
         <motion.div
           className="w-full max-w-sm text-center"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-whatsapp text-surface-950 shadow-glow">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-whatsapp text-onAccent shadow-glow">
             <MailCheck size={26} />
           </div>
-          <h1 className="font-display text-xl font-bold text-slate-100">Confirme seu e-mail</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Enviamos um link para <span className="text-slate-200">{confirmeSeuEmail}</span>. Clique
+          <h1 className="font-display text-xl font-bold text-content-100">Confirme seu e-mail</h1>
+          <p className="mt-2 text-sm text-content-400">
+            Enviamos um link para <span className="text-content-200">{confirmeSeuEmail}</span>. Clique
             nele para ativar a conta e depois volte aqui para entrar.
           </p>
-          <p className="mt-3 text-xs text-slate-600">
+          <p className="mt-3 text-xs text-content-600">
             Não chegou? Confira a caixa de spam — o e-mail pode levar alguns minutos.
           </p>
           <button
@@ -84,6 +87,8 @@ export default function Login() {
 
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-10">
+      {/* O login fica fora do Layout, então precisa do seu próprio botão. */}
+      <ThemeToggle className="fixed right-4 top-4 z-10" />
       <motion.div
         className="w-full max-w-sm"
         initial={{ opacity: 0, y: 12 }}
@@ -91,11 +96,11 @@ export default function Login() {
         transition={{ duration: 0.3 }}
       >
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-whatsapp text-surface-950 shadow-glow">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-whatsapp text-onAccent shadow-glow">
             <Send size={26} />
           </div>
-          <h1 className="font-display text-2xl font-bold text-slate-100">Prospecta</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="font-display text-2xl font-bold text-content-100">Prospecta</h1>
+          <p className="mt-1 text-sm text-content-400">
             {cadastrando ? 'Crie sua conta grátis e comece a prospectar' : 'Entre para acessar seus leads'}
           </p>
         </div>
@@ -128,7 +133,7 @@ export default function Login() {
               autoComplete={cadastrando ? 'new-password' : 'current-password'}
             />
             {cadastrando && (
-              <p className="mt-1.5 text-[11px] text-slate-600">Mínimo de 6 caracteres.</p>
+              <p className="mt-1.5 text-[11px] text-content-600">Mínimo de 6 caracteres.</p>
             )}
           </div>
           <button type="submit" className="btn-primary w-full" disabled={carregando}>
@@ -149,7 +154,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-slate-400">
+        <p className="mt-5 text-center text-sm text-content-400">
           {cadastrando ? 'Já tem conta?' : 'Ainda não tem conta?'}{' '}
           <button
             type="button"

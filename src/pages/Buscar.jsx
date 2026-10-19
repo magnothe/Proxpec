@@ -273,7 +273,7 @@ export default function Buscar() {
               IA ativa
             </span>
           ) : (
-            <span className="ml-1 rounded-full bg-surface-700 px-2 py-0.5 text-[10px] text-slate-400">
+            <span className="ml-1 rounded-full bg-surface-700 px-2 py-0.5 text-[10px] text-content-400">
               modo simples
             </span>
           )}
@@ -292,7 +292,7 @@ export default function Buscar() {
           </button>
         </div>
         {!temIA && (
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-content-500">
             Dica: ative a IA em{' '}
             <Link to="/config" className="text-whatsapp hover:underline">
               Configurações
@@ -339,7 +339,7 @@ export default function Buscar() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={toggleTodos}
-              className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-slate-100"
+              className="flex items-center gap-2 text-sm font-medium text-content-300 hover:text-content-100"
             >
               {todosSelec ? (
                 <CheckSquare size={18} className="text-whatsapp" />
@@ -348,7 +348,7 @@ export default function Buscar() {
               )}
               Selecionar novos
             </button>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-content-300">
               <input
                 type="checkbox"
                 checked={soComCelular}
@@ -357,7 +357,7 @@ export default function Buscar() {
               />
               Só com celular
             </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-content-300">
               <input
                 type="checkbox"
                 checked={esconderJaLead}
@@ -366,7 +366,7 @@ export default function Buscar() {
               />
               Esconder quem já é lead
             </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-content-300">
               <input
                 type="checkbox"
                 checked={somenteSemSite}
@@ -375,10 +375,10 @@ export default function Buscar() {
               />
               Só quem não tem site
             </label>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-content-500">
               {visiveis.length} exibido(s) · {selecionados.size} selecionado(s)
               {escondidos > 0 && (
-                <span className="text-slate-600"> · {escondidos} ocultos pelos filtros</span>
+                <span className="text-content-600"> · {escondidos} ocultos pelos filtros</span>
               )}
             </span>
           </div>
@@ -396,7 +396,7 @@ export default function Buscar() {
           descricao="Escolha um tipo de comércio e uma cidade, ou descreva o que procura na busca inteligente."
         />
       ) : buscando ? (
-        <div className="card flex flex-col items-center gap-3 py-16 text-slate-400">
+        <div className="card flex flex-col items-center gap-3 py-16 text-content-400">
           <Loader2 size={28} className="animate-spin text-whatsapp" />
           <p className="text-sm">Buscando comércios reais em {cidade}...</p>
         </div>
@@ -426,7 +426,7 @@ export default function Buscar() {
                   <button
                     onClick={() => !cadastrado && toggle(r.osmId)}
                     disabled={cadastrado}
-                    className="mt-0.5 shrink-0 text-slate-400 enabled:hover:text-whatsapp disabled:cursor-not-allowed"
+                    className="mt-0.5 shrink-0 text-content-400 enabled:hover:text-whatsapp disabled:cursor-not-allowed"
                     title={cadastrado ? 'Já está nos seus leads' : 'Selecionar'}
                   >
                     {marcado ? (
@@ -438,8 +438,8 @@ export default function Buscar() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-100">{r.nome}</span>
-                      <span className="rounded-md bg-surface-800 px-2 py-0.5 text-[11px] text-slate-400">
+                      <span className="font-medium text-content-100">{r.nome}</span>
+                      <span className="rounded-md bg-surface-800 px-2 py-0.5 text-[11px] text-content-400">
                         {r.tipoLabel}
                       </span>
                       {r.temSite ? (
@@ -447,7 +447,7 @@ export default function Buscar() {
                           href={r.site.startsWith('http') ? r.site : `https://${r.site}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md bg-surface-800 px-2 py-0.5 text-[11px] text-slate-400 hover:text-slate-200"
+                          className="inline-flex items-center gap-1 rounded-md bg-surface-800 px-2 py-0.5 text-[11px] text-content-400 hover:text-content-200"
                         >
                           <Globe size={11} /> tem site <ExternalLink size={9} />
                         </a>
@@ -457,27 +457,27 @@ export default function Buscar() {
                         </span>
                       )}
                       {cadastrado && (
-                        <span className="rounded-md bg-surface-700 px-2 py-0.5 text-[11px] text-slate-400">
+                        <span className="rounded-md bg-surface-700 px-2 py-0.5 text-[11px] text-content-400">
                           já é lead
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-content-500">
                       {r.endereco && (
                         <span className="inline-flex items-center gap-1">
                           <MapPin size={11} /> {r.endereco}
                         </span>
                       )}
                       {r.temCelular ? (
-                        <span className="inline-flex items-center gap-1 text-slate-400">
+                        <span className="inline-flex items-center gap-1 text-content-400">
                           <Phone size={11} /> {formatarTelefone(r.telefone)}
                         </span>
                       ) : r.telefone ? (
-                        <span className="inline-flex items-center gap-1 text-slate-600">
+                        <span className="inline-flex items-center gap-1 text-content-600">
                           <Phone size={11} /> {formatarTelefone(r.telefone)} · fixo, sem WhatsApp
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-slate-600">
+                        <span className="inline-flex items-center gap-1 text-content-600">
                           <PhoneOff size={11} /> sem telefone
                         </span>
                       )}
@@ -518,7 +518,7 @@ export default function Buscar() {
       )}
 
       {infoCidade && resultados.length > 0 && (
-        <p className="mt-4 text-center text-[11px] text-slate-600">
+        <p className="mt-4 text-center text-[11px] text-content-600">
           Resultados para {infoCidade.displayName}. Dados © colaboradores do OpenStreetMap.
           Telefones e sites dependem do que está cadastrado no mapa.
         </p>

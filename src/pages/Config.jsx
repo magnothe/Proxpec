@@ -102,8 +102,8 @@ export default function Config() {
               <Cloud size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-100">Conta conectada</p>
-              <p className="text-xs text-slate-500">{usuario?.email} · dados sincronizados na nuvem</p>
+              <p className="text-sm font-medium text-content-100">Conta conectada</p>
+              <p className="text-xs text-content-500">{usuario?.email} · dados sincronizados na nuvem</p>
             </div>
           </div>
           <button
@@ -121,7 +121,7 @@ export default function Config() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Dados do negócio */}
         <form onSubmit={salvar} className="card space-y-4 p-5">
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-slate-100">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-content-100">
             <Building2 size={18} className="text-whatsapp" /> Dados do negócio
           </h2>
           <div>
@@ -160,7 +160,7 @@ export default function Config() {
               value={intervalo}
               onChange={(e) => setIntervalo(e.target.value)}
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-content-500">
               Tempo de espera entre abrir cada conversa no "Abrir todos". Recomendado: 2s.
             </p>
           </div>
@@ -171,10 +171,10 @@ export default function Config() {
 
         {/* Segmentos */}
         <div className="card space-y-4 p-5">
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-slate-100">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-content-100">
             <Tags size={18} className="text-whatsapp" /> Segmentos-alvo
           </h2>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-content-400">
             Nichos que você atende. Aparecem como sugestão ao cadastrar leads.
           </p>
           <div className="flex gap-2">
@@ -191,17 +191,17 @@ export default function Config() {
           </div>
           <div className="flex flex-wrap gap-2">
             {config.segmentos.length === 0 && (
-              <p className="text-sm text-slate-500">Nenhum segmento cadastrado.</p>
+              <p className="text-sm text-content-500">Nenhum segmento cadastrado.</p>
             )}
             {config.segmentos.map((s) => (
               <span
                 key={s}
-                className="inline-flex items-center gap-1.5 rounded-full bg-surface-800 py-1.5 pl-3 pr-2 text-sm text-slate-200"
+                className="inline-flex items-center gap-1.5 rounded-full bg-surface-800 py-1.5 pl-3 pr-2 text-sm text-content-200"
               >
                 {s}
                 <button
                   onClick={() => removerSegmento(s)}
-                  className="rounded-full p-0.5 text-slate-500 hover:bg-surface-600 hover:text-red-400"
+                  className="rounded-full p-0.5 text-content-500 hover:bg-surface-600 hover:text-red-400"
                   title="Remover"
                 >
                   <X size={14} />
@@ -215,7 +215,7 @@ export default function Config() {
       {/* Agente de IA */}
       <div className="card mt-6 space-y-4 p-5">
         <div className="flex items-center gap-2">
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-slate-100">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-content-100">
             <Sparkles size={18} className="text-whatsapp" /> Agente de IA
           </h2>
           {config.iaApiKey ? (
@@ -223,12 +223,12 @@ export default function Config() {
               <CheckCircle2 size={12} /> ativo
             </span>
           ) : (
-            <span className="rounded-full bg-surface-700 px-2 py-0.5 text-[11px] text-slate-400">
+            <span className="rounded-full bg-surface-700 px-2 py-0.5 text-[11px] text-content-400">
               desativado
             </span>
           )}
         </div>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-content-400">
           Opcional. Com uma chave da API da Claude, a <strong>Busca inteligente</strong> interpreta
           pedidos em linguagem natural ("restaurantes em Campinas sem site") e gera mensagens de
           primeiro contato sob medida. Sem chave, a busca por tipo + cidade funciona normalmente.
@@ -250,13 +250,13 @@ export default function Config() {
               <button
                 type="button"
                 onClick={() => setMostrarKey((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-content-500 hover:text-content-300"
                 title={mostrarKey ? 'Ocultar' : 'Mostrar'}
               >
                 {mostrarKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-content-500">
               Crie a sua em{' '}
               <a
                 href="https://console.anthropic.com/settings/keys"
@@ -277,7 +277,7 @@ export default function Config() {
               onChange={(e) => setModelo(e.target.value)}
               placeholder={MODELO_PADRAO}
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-content-500">
               Padrão: {MODELO_PADRAO} (rápido e econômico).
             </p>
           </div>
@@ -306,10 +306,10 @@ export default function Config() {
       {/* Zona de dados */}
       <div className="card mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 font-display text-base font-semibold text-slate-100">
-            <Database size={17} className="text-slate-400" /> Dados locais
+          <h2 className="flex items-center gap-2 font-display text-base font-semibold text-content-100">
+            <Database size={17} className="text-content-400" /> Dados locais
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-content-500">
             Tudo é salvo apenas neste navegador (localStorage). Apagar não pode ser desfeito.
           </p>
         </div>

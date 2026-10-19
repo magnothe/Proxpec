@@ -18,7 +18,8 @@ import EmptyState from '../components/EmptyState'
 import { useLeads } from '../hooks/useLeads'
 import { useTemplates } from '../hooks/useTemplates'
 import { useConfig } from '../hooks/useConfig'
-import { STATUS, STATUS_LISTA } from '../data/defaults'
+import { STATUS, STATUS_LISTA, coresStatus } from '../data/defaults'
+import { useTheme } from '../context/ThemeContext'
 import { ehHoje, tempoRelativo } from '../utils/format'
 import { gerarLinkWhatsApp, personalizarMensagem, encontrarTemplate, TEMPLATE_PRIMEIRO_CONTATO } from '../utils/whatsapp'
 
@@ -62,6 +63,22 @@ export default function Dashboard() {
   const { templates } = useTemplates()
   const { config } = useConfig()
   const navigate = useNavigate()
+  const { escuro } = useTheme()
+
+  // Paleta do gráfico. O recharts recebe cor por prop, não por classe, então
+  // aqui não dá para usar os tokens do Tailwind — resolvemos na mão.
+  // slate-500 tem contraste suficiente nos dois fundos, então o eixo não muda.
+  const eixo = '#64748b'
+  const grade = escuro ? '#1e2833' : '#e2e8f0'
+  // Os ícones dos cartões de métrica seguem a mesma lógica dos status: tom
+  // vivo no escuro, tom escurecido no claro.
+  const corMetrica = (viva, escurecida) => (escuro ? viva : escurecida)
+  const tooltipEstilo = {
+    background: escuro ? '#0f151c' : '#ffffff',
+    border: `1px solid ${escuro ? '#2a3744' : '#cbd5e1'}`,
+    borderRadius: 10,
+    fontSize: 13,
+  }
 
   const metricas = useMemo(() => {
     const total = leads.length
@@ -108,25 +125,25 @@ export default function Dashboard() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard icone={Users} titulo="Total de leads" valor={metricas.total} cor="#38bdf8" />
+        <MetricCard icone={Users} titulo="Total de leads" valor={metricas.total} cor={corMetrica('#38bdf8', '#0284c7')} />
         <MetricCard
           icone={UserPlus}
           titulo="Novos hoje"
           valor={metricas.novosHoje}
-          cor="#a78bfa"
+          cor={corMetrica('#a78bfa', '#7c3aed')}
         />
         <MetricCard
           icone={MessageCircle}
           titulo="Mensagens enviadas"
           valor={metricas.mensagens}
-          cor="#25D366"
+          cor={corMetrica('#25D366', '#15803d')}
         />
         <MetricCard
           icone={TrendingUp}
           titulo="Taxa de conversão"
           valor={metricas.conversao}
           sufixo="%"
-          cor="#fbbf24"
+          cor={corMetrica('#fbbf24', '#b45309')}
           detalhe={`${metricas.fechados} fechado(s)`}
         />
       </div>
@@ -136,25 +153,20 @@ export default function Dashboard() {
         <div className="card p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="font-display text-lg font-semibold text-slate-100">Leads na semana</h2>
-              <p className="text-xs text-slate-500">Cadastrados nos últimos 7 dias, por status</p>
+              <h2 className="font-display text-lg font-semibold text-content-100">Leads na semana</h2>
+              <p className="text-xs text-content-500">Cadastrados nos últimos 7 dias, por status</p>
             </div>
           </div>
           {temDadosSemana ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={semana} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2833" vertical={false} />
-                <XAxis dataKey="dia" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={grade} vertical={false} />
+                <XAxis dataKey="dia" stroke={eixo} fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke={eixo} fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip
-                  contentStyle={{
-                    background: '#0f151c',
-                    border: '1px solid #2a3744',
-                    borderRadius: 10,
-                    fontSize: 13,
-                  }}
-                  labelStyle={{ color: '#e2e8f0' }}
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                  contentStyle={tooltipEstilo}
+                  labelStyle={{ color: escuro ? '#e2e8f0' : '#0f172a' }}
+                  cursor={{ fill: escuro ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)' }}
                 />
                 <Legend
                   iconType="circle"
@@ -166,7 +178,7 @@ export default function Dashboard() {
                     key={s.valor}
                     dataKey={s.valor}
                     stackId="a"
-                    fill={s.cor}
+                    fill={coresStatus(s.valor, escuro).cor}
                     radius={s.valor === 'perdido' ? [4, 4, 0, 0] : 0}
                     maxBarSize={44}
                   />
@@ -174,7 +186,7 @@ export default function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-[280px] items-center justify-center text-sm text-slate-500">
+            <div className="flex h-[280px] items-center justify-center text-sm text-content-500">
               Nenhum lead cadastrado nos últimos 7 dias.
             </div>
           )}
@@ -182,7 +194,7 @@ export default function Dashboard() {
 
         {/* Distribuição por status */}
         <div className="card p-5">
-          <h2 className="mb-4 font-display text-lg font-semibold text-slate-100">Por status</h2>
+          <h2 className="mb-4 font-display text-lg font-semibold text-content-100">Por status</h2>
           <div className="space-y-3">
             {STATUS_LISTA.map((s) => {
               const qtd = leads.filter((l) => l.status === s.valor).length
@@ -190,16 +202,16 @@ export default function Dashboard() {
               return (
                 <div key={s.valor}>
                   <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2 text-slate-300">
-                      <span className="h-2 w-2 rounded-full" style={{ background: s.cor }} />
+                    <span className="flex items-center gap-2 text-content-300">
+                      <span className="h-2 w-2 rounded-full" style={{ background: coresStatus(s.valor, escuro).cor }} />
                       {s.label}
                     </span>
-                    <span className="text-slate-400">{qtd}</span>
+                    <span className="text-content-400">{qtd}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-surface-800">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, background: s.cor }}
+                      style={{ width: `${pct}%`, background: coresStatus(s.valor, escuro).cor }}
                     />
                   </div>
                 </div>
@@ -212,7 +224,7 @@ export default function Dashboard() {
       {/* Leads recentes */}
       <div className="mt-6 card overflow-hidden">
         <div className="flex items-center justify-between border-b border-surface-700 px-5 py-4">
-          <h2 className="font-display text-lg font-semibold text-slate-100">Leads recentes</h2>
+          <h2 className="font-display text-lg font-semibold text-content-100">Leads recentes</h2>
           <Link to="/leads" className="flex items-center gap-1 text-sm text-whatsapp hover:underline">
             Ver todos <ArrowRight size={14} />
           </Link>
@@ -237,12 +249,12 @@ export default function Dashboard() {
                 key={lead.id}
                 className="flex flex-wrap items-center gap-3 px-5 py-3.5 hover:bg-surface-800/40"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-700 text-sm font-semibold text-slate-300">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-700 text-sm font-semibold text-content-300">
                   {lead.nome.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-slate-100">{lead.nome}</p>
-                  <p className="truncate text-xs text-slate-500">
+                  <p className="truncate font-medium text-content-100">{lead.nome}</p>
+                  <p className="truncate text-xs text-content-500">
                     {lead.empresa || 'Sem empresa'} · {tempoRelativo(lead.criadoEm)}
                   </p>
                 </div>
