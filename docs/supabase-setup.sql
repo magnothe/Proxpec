@@ -1,5 +1,9 @@
 -- Prospecta — configuração do banco no Supabase
 -- Cole tudo isto no SQL Editor do Supabase e clique em "Run".
+--
+-- ATENÇÃO: este arquivo sozinho não está completo. Depois dele, rode
+-- `supabase-migracao-01.sql`, que corrige a limpeza automática (a versão
+-- daqui perde a lista de "já abordados") e agenda o job.
 
 -- 1) Tabela que guarda todos os dados do app (um registro por usuário)
 create table if not exists public.app_data (
