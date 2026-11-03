@@ -43,7 +43,9 @@ export function AuthProvider({ children }) {
         throw new Error('E-mail ou senha incorretos.')
       }
       if (/email not confirmed/i.test(error.message)) {
-        throw new Error('E-mail ainda não confirmado. Confirme o usuário no painel do Supabase.')
+        throw new Error(
+          'E-mail ainda não confirmado. Clique no link que enviamos no cadastro (confira o spam).'
+        )
       }
       throw new Error(error.message)
     }
@@ -68,6 +70,17 @@ export function AuthProvider({ children }) {
       },
     })
     if (error) {
+      // O serviço de e-mail embutido do Supabase manda pouquíssimos e-mails por
+      // hora. Estourou o limite, o cadastro falha inteiro (o usuário NÃO é
+      // criado), e a mensagem crua em inglês deixava a pessoa sem saber o que fazer.
+      if (
+        error.status === 429 ||
+        /rate limit|over_email_send_rate_limit|security purposes/i.test(error.message)
+      ) {
+        throw new Error(
+          'Muitos cadastros em pouco tempo e o envio do e-mail de confirmação foi bloqueado. Tente de novo daqui a alguns minutos.'
+        )
+      }
       if (/signups not allowed/i.test(error.message)) {
         throw new Error('Os cadastros estão desativados no momento.')
       }
