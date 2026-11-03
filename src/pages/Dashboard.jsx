@@ -17,7 +17,6 @@ import StatusBadge from '../components/StatusBadge'
 import EmptyState from '../components/EmptyState'
 import { useLeads } from '../hooks/useLeads'
 import { useTemplates } from '../hooks/useTemplates'
-import { useConfig } from '../hooks/useConfig'
 import { STATUS, STATUS_LISTA, coresStatus } from '../data/defaults'
 import { useTheme } from '../context/ThemeContext'
 import { ehHoje, tempoRelativo } from '../utils/format'
@@ -61,7 +60,6 @@ function dadosSemana(leads) {
 export default function Dashboard() {
   const { leads, marcarContatado } = useLeads()
   const { templates } = useTemplates()
-  const { config } = useConfig()
   const navigate = useNavigate()
   const { escuro } = useTheme()
 
@@ -116,7 +114,6 @@ export default function Dashboard() {
     <div>
       <PageHeader
         titulo={`Olá! 👋`}
-        subtitulo={`Visão geral da prospecção de ${config.nomeEmpresa || 'seu negócio'}.`}
         acoes={
           <Link to="/disparo" className="btn-primary">
             <MessageCircle size={16} /> Disparar mensagens

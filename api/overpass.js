@@ -17,18 +17,26 @@
 // são a MESMA máquina (mesmo IP), então listar os dois não dá redundância.
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
-  'https://overpass.openstreetmap.fr/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.fr/api/interpreter',
 ]
 
-const RODADAS = 2
-// Precisa ser MAIOR que o [timeout:N] da consulta (src/utils/overpass.js),
-// para o Overpass ter chance de responder o próprio erro antes de abortarmos.
-const TIMEOUT_POR_TENTATIVA = 22000
-
+// Os servidores públicos às vezes ficam LENTOS (20-45s por resposta) sem
+// estarem fora do ar. Tentar um de cada vez com timeout curto fazia todos
+// estourarem em sequência. Por isso disparamos todos AO MESMO TEMPO e ficamos
+// com o primeiro que devolver um JSON válido — os demais são cancelados.
+//
 // Orçamento total: precisamos responder ANTES de a Vercel matar a função,
 // senão o usuário recebe um 504 cru, sem mensagem de erro aproveitável.
-const ORCAMENTO_TOTAL = 50000
+const ORCAMENTO_TOTAL = 52000
+
+// Quando um servidor falha RÁPIDO (502/504 em ~1s, típico de sobrecarga),
+// ele volta a ser tentado sozinho depois de uma pausa — sem esperar pelos
+// outros. Pausas crescentes para não martelar quem já está sobrecarregado.
+const PAUSAS_ENTRE_TENTATIVAS = [2000, 4000, 7000, 10000]
+// Não vale começar uma tentativa nova se sobrar menos que isso de prazo.
+const MINIMO_PARA_TENTAR = 8000
 
 // Se o deploy reclamar de `maxDuration` (o teto varia conforme o plano),
 // pode remover esta linha — aí vale o padrão do plano, e o ORCAMENTO_TOTAL
@@ -52,40 +60,77 @@ function lerCorpo(req) {
   })
 }
 
-async function tentarEndpoint(endpoint, query) {
-  const ctrl = new AbortController()
-  const t = setTimeout(() => ctrl.abort(), TIMEOUT_POR_TENTATIVA)
-  try {
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        // A política de uso do OSM exige identificar a aplicação.
-        'User-Agent': 'Prospecta-CRM/1.0 (prospeccao de clientes; contato via app)',
-      },
-      body: new URLSearchParams({ data: query }).toString(),
-      signal: ctrl.signal,
-    })
+async function tentarEndpoint(endpoint, query, signal) {
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      // A política de uso do OSM exige identificar a aplicação.
+      'User-Agent': 'Prospecta-CRM/1.0 (prospeccao de clientes; contato via app)',
+    },
+    body: new URLSearchParams({ data: query }).toString(),
+    signal,
+  })
 
-    if ([429, 502, 503, 504].includes(resp.status)) throw new Error(`sobrecarregado (${resp.status})`)
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+  if ([429, 502, 503, 504].includes(resp.status)) throw new Error(`sobrecarregado (${resp.status})`)
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
 
-    // O Overpass às vezes responde 200 com uma página de erro em XML/HTML em
-    // vez de JSON. Validamos antes do parse para não tratar isso como sucesso.
-    const texto = await resp.text()
-    if (!texto.trim().startsWith('{')) throw new Error('resposta nao-JSON do servidor')
+  // O Overpass às vezes responde 200 com uma página de erro em XML/HTML em
+  // vez de JSON. Validamos antes do parse para não tratar isso como sucesso.
+  const texto = await resp.text()
+  if (!texto.trim().startsWith('{')) throw new Error('resposta nao-JSON do servidor')
 
-    const dados = JSON.parse(texto)
+  const dados = JSON.parse(texto)
 
-    // Erros de execução também vêm dentro do JSON, no campo "remark",
-    // acompanhados de uma lista de elementos vazia.
-    if (dados.remark && /error|timed out|out of memory/i.test(dados.remark)) {
-      throw new Error(dados.remark)
+  // Erros de execução também vêm dentro do JSON, no campo "remark",
+  // acompanhados de uma lista de elementos vazia.
+  if (dados.remark && /error|timed out|out of memory/i.test(dados.remark)) {
+    throw new Error(dados.remark)
+  }
+
+  return dados
+}
+
+// Tenta UM servidor repetidas vezes até dar certo ou o prazo acabar.
+async function tentarComRetentativas(endpoint, query, signal, prazo, falhas, inicio) {
+  const host = new URL(endpoint).host
+  for (let i = 0; ; i++) {
+    try {
+      return await tentarEndpoint(endpoint, query, signal)
+    } catch (e) {
+      if (signal.aborted) throw e // prazo acabou ou outro servidor já venceu
+      // "fetch failed" sozinho não diz nada: o motivo real (ENOTFOUND,
+      // ECONNREFUSED, timeout de conexão) vem dentro de e.cause.
+      const causa = e.cause ? ` [${e.cause.code || e.cause.message}]` : ''
+      const falha = `${host}: ${e.name}: ${e.message}${causa} (${Date.now() - inicio}ms)`
+      falhas.push(falha)
+      console.error('[overpass]', falha)
+
+      const pausa = PAUSAS_ENTRE_TENTATIVAS[i]
+      if (pausa === undefined || prazo - Date.now() - pausa < MINIMO_PARA_TENTAR) throw e
+      await esperar(pausa)
+      if (signal.aborted) throw e
     }
+  }
+}
 
-    return dados
+// Dispara a consulta em todos os servidores em paralelo e resolve com o
+// primeiro sucesso. Rejeita só quando TODOS desistiram (ou o prazo acabou).
+async function correrEmParalelo(query, prazo, falhas) {
+  const ctrl = new AbortController()
+  const inicio = Date.now()
+  const t = setTimeout(() => {
+    falhas.push(`prazo de ${ORCAMENTO_TOTAL / 1000}s esgotado sem resposta valida`)
+    ctrl.abort()
+  }, prazo - inicio)
+
+  try {
+    return await Promise.any(
+      OVERPASS_ENDPOINTS.map((ep) => tentarComRetentativas(ep, query, ctrl.signal, prazo, falhas, inicio))
+    )
   } finally {
     clearTimeout(t)
+    ctrl.abort() // cancela os servidores que ainda estavam processando
   }
 }
 
@@ -111,33 +156,13 @@ export default async function handler(req, res) {
   const prazo = Date.now() + ORCAMENTO_TOTAL
   const falhas = []
 
-  for (let rodada = 0; rodada < RODADAS; rodada++) {
-    for (const endpoint of OVERPASS_ENDPOINTS) {
-      const host = new URL(endpoint).host
-
-      // Sem tempo para mais uma tentativa completa: para agora e responde
-      // com erro tratado, em vez de ser cortado no meio pela plataforma.
-      if (Date.now() + TIMEOUT_POR_TENTATIVA > prazo) {
-        falhas.push(`${host}: pulado (sem tempo no orcamento da funcao)`)
-        continue
-      }
-
-      const inicio = Date.now()
-      try {
-        const dados = await tentarEndpoint(endpoint, query)
-        res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600')
-        res.status(200).json(dados)
-        return
-      } catch (e) {
-        // "fetch failed" sozinho não diz nada: o motivo real (ENOTFOUND,
-        // ECONNREFUSED, timeout de conexão) vem dentro de e.cause.
-        const causa = e.cause ? ` [${e.cause.code || e.cause.message}]` : ''
-        const falha = `${host}: ${e.name}: ${e.message}${causa} (${Date.now() - inicio}ms)`
-        falhas.push(falha)
-        console.error('[overpass]', falha)
-      }
-    }
-    if (rodada < RODADAS - 1) await esperar(1000)
+  try {
+    const dados = await correrEmParalelo(query, prazo, falhas)
+    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600')
+    res.status(200).json(dados)
+    return
+  } catch {
+    // todos os servidores desistiram ou o prazo acabou — cai no 503 abaixo
   }
 
   res.status(503).json({

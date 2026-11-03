@@ -89,10 +89,10 @@ function construirQuery(bbox, tags) {
     ])
     .join('\n')
   // O timeout aqui é o que o Overpass usa internamente. Ele precisa ser MENOR
-  // que o TIMEOUT_POR_TENTATIVA do backend (api/overpass.js), senão nós
-  // abortamos a conexão antes de o servidor conseguir responder — e aí perdemos
-  // a mensagem de erro dele, que diria o motivo real.
-  return `[out:json][timeout:18];\n(\n${linhas}\n);\nout center ${LIMITE_RESULTADOS};`
+  // que o ORCAMENTO_TOTAL do backend (api/overpass.js), senão nós abortamos a
+  // conexão antes de o servidor conseguir responder — e aí perdemos a mensagem
+  // de erro dele, que diria o motivo real.
+  return `[out:json][timeout:30];\n(\n${linhas}\n);\nout center ${LIMITE_RESULTADOS};`
 }
 
 /**
