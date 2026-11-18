@@ -11,6 +11,7 @@ import Leads from './pages/Leads'
 import Templates from './pages/Templates'
 import Disparo from './pages/Disparo'
 import Config from './pages/Config'
+import Tutorial from './pages/Tutorial'
 
 function Splash({ texto = 'Carregando...' }) {
   return (
@@ -37,6 +38,7 @@ function AppRoutes() {
         <Route path="/templates" element={<Templates />} />
         <Route path="/disparo" element={<Disparo />} />
         <Route path="/config" element={<Config />} />
+        <Route path="/tutorial" element={<Tutorial />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>
