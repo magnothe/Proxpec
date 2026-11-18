@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   Send,
   Settings,
+  BookOpen,
   Radar,
   LogOut,
   Cloud,
@@ -23,6 +24,7 @@ const NAV = [
   { to: '/templates', label: 'Templates', curto: 'Modelos', icone: MessageSquareText },
   { to: '/disparo', label: 'Disparo', curto: 'Disparo', icone: Send },
   { to: '/config', label: 'Configurações', curto: 'Config', icone: Settings },
+  { to: '/tutorial', label: 'Tutorial', curto: 'Ajuda', icone: BookOpen },
 ]
 
 function Logo() {
